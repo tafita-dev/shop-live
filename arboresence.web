@@ -1,0 +1,26 @@
+shoplive-vendor/
+│
+├── src/
+│   ├── components/
+│   │   ├── ProductForm.jsx
+│   │   ├── ProductList.jsx
+│   │   ├── LiveForm.jsx
+│   │   ├── LiveList.jsx
+│   │   └── OrdersTable.jsx
+│   │
+│   ├── pages/
+│   │   ├── Login.jsx
+│   │   ├── Dashboard.jsx
+│   │   ├── Products.jsx
+│   │   ├── Lives.jsx
+│   │   └── Orders.jsx
+│   │
+│   ├── firebase/
+│   │   └── config.js
+│   │
+│   ├── utils/
+│   │   └── formatDate.js
+│   │
+│   └── App.jsx
+│
+└── package.json

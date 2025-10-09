@@ -1,0 +1,37 @@
+📦 Firestore
+│
+├── users
+│   └── userId
+│        ├── name: string
+│        ├── email: string
+│        ├── role: "client" | "vendor"
+│        ├── phone?: string
+│        └── createdAt: timestamp
+│
+├── products
+│   └── productId
+│        ├── vendorId: string
+│        ├── title: string
+│        ├── description: string
+│        ├── price: number
+│        ├── imageUrl: string
+│        └── createdAt: timestamp
+│
+├── lives
+│   └── liveId
+│        ├── vendorId: string
+│        ├── facebookIframeUrl: string
+│        ├── productIds: string[]
+│        ├── isActive: boolean
+│        └── createdAt: timestamp
+│
+└── orders
+    └── orderId
+         ├── userId: string
+         ├── vendorId: string
+         ├── productId: string
+         ├── quantity: number
+         ├── paymentMethod: "mobileMoney" | "delivery"
+         ├── status: "pending" | "paid" | "delivered"
+         ├── deliveryAddress?: string
+         └── createdAt: timestamp

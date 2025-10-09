@@ -1,0 +1,26 @@
+shoplive-client/
+│
+├── app/
+│   ├── (auth)/
+│   │   ├── login.tsx
+│   │   └── register.tsx
+│   ├── (live)/
+│   │   ├── index.tsx          → Liste des lives actifs
+│   │   ├── live-details.tsx   → Affiche le live Facebook (WebView)
+│   │   └── products-list.tsx  → Produits du live
+│   ├── (orders)/
+│   │   └── my-orders.tsx
+│   └── profile.tsx
+│
+├── components/
+│   ├── ProductCard.tsx
+│   ├── LiveCard.tsx
+│   └── Button.tsx
+│
+├── firebase/
+│   └── config.ts
+│
+├── utils/
+│   └── helpers.ts
+│
+└── App.tsx

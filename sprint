@@ -1,0 +1,8 @@
+| Sprint | Durée   | Objectif                                                                               | Stack principale | Délai estimé |
+| ------ | ------- | -------------------------------------------------------------------------------------- | ---------------- | ------------ |
+| **S1** | 5 jours | **Mise en place Firebase + Authentification** (Google, Facebook, email) sur les 2 apps | Expo / React.js  | J+5          |
+| **S2** | 6 jours | **CRUD Produits** (ajout, modification, suppression, upload image Storage)             | React.js         | J+11         |
+| **S3** | 5 jours | **Création et affichage de Live Facebook (iframe)**                                    | React.js / Expo  | J+16         |
+| **S4** | 6 jours | **Réservation et paiement simulé (Mobile Money ou livraison)**                         | Expo             | J+22         |
+| **S5** | 5 jours | **Affichage commandes vendeur + historique client**                                    | Expo / React.js  | J+27         |
+| **S6** | 3 jours | **Design final + Tests + publication Firebase Hosting (web)**                          | Expo / React.js  | J+30         |
