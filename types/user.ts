@@ -10,5 +10,5 @@ export interface User {
     googleId?: string;
     emailPassword?: boolean;
   };
-  password: string;
+  password?: string;
 }

@@ -1,93 +1,142 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import { authStorage } from '@/utils/authStorage';
-import { LogOut } from 'lucide-react-native';
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  Image,
+  StyleSheet,
+  ListRenderItem,
+} from 'react-native';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { useNavigation } from '@react-navigation/native';
+import { db } from '@/firebase/config';
+import { Live } from '@/types/live';
 
-export default function Home() {
-  const router = useRouter();
-  const [userId, setUserId] = useState<string | null>(null);
+export default function HomeScreen() {
+  const [lives, setLives] = useState<Live[]>([]);
+  const navigation = useNavigation<any>();
 
   useEffect(() => {
-    loadUserData();
+    const fetchLives = async () => {
+      try {
+        const q = query(collection(db, 'lives'), orderBy('createdAt', 'desc'));
+        const snapshot = await getDocs(q);
+
+        const liveList: Live[] = snapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            objectId: doc.id,
+            profile: data.Profile || '',
+            title: data.Title || '',
+            createdAt: data.createdAt ? data.createdAt.toDate() : new Date(),
+            facebookIframeUrl: data.facebookIframeUrl || '',
+            isActive: data.isActive ?? false,
+            vendorId: data.vendorId || '',
+            vendorName: data.vendorName || '',
+          };
+        });
+
+        setLives(liveList);
+      } catch (error) {
+        console.error('Erreur de chargement des lives :', error);
+      }
+    };
+
+    fetchLives();
   }, []);
 
-  const loadUserData = async () => {
-    const id = await authStorage.getUserId();
-    setUserId(id);
-  };
+  const renderItem: ListRenderItem<Live> = ({ item }) => (
+    <View style={styles.card}>
+      <View>
+        <Image
+          source={{
+            uri:
+              item.profile ||
+              'https://via.placeholder.com/300x200.png?text=Live',
+          }}
+          style={styles.thumbnail}
+        />
 
-  const handleLogout = async () => {
-    await authStorage.clearAuthData();
-    router.replace('/(auth)/login');
-  };
+        {/* ✅ Badge LIVE ou HORS LIGNE */}
+        {item.isActive ? (
+          <View style={[styles.badge, { backgroundColor: 'red' }]}>
+            <Text style={styles.badgeText}>LIVE</Text>
+          </View>
+        ) : (
+          <View style={[styles.badge, { backgroundColor: 'gray' }]}>
+            <Text style={styles.badgeText}>Hors ligne</Text>
+          </View>
+        )}
+      </View>
 
-  return (
-    <LinearGradient
-      colors={['#8B5CF6', '#EC4899', '#F59E0B']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.container}
-    >
-      <View style={styles.content}>
-        <Text style={styles.title}>Bienvenue !</Text>
-        <Text style={styles.subtitle}>Vous êtes connecté</Text>
-        {userId && <Text style={styles.userId}>ID Utilisateur: {userId}</Text>}
-
-        <TouchableOpacity
-          style={styles.logoutButton}
-          onPress={handleLogout}
-          activeOpacity={0.8}
-        >
-          <LogOut size={20} color="#FFF" style={{ marginRight: 8 }} />
-          <Text style={styles.logoutText}>Déconnexion</Text>
+      <View style={styles.info}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.title}>{item.title}</Text>
+          <Text style={styles.vendor}>{item.vendorName}</Text>
+        </View>
+        <TouchableOpacity style={styles.button}>
+          <Text style={{ color: 'white', fontWeight: 'bold' }}>Voir</Text>
         </TouchableOpacity>
       </View>
-    </LinearGradient>
+    </View>
+  );
+
+  return (
+    <FlatList
+      data={lives}
+      keyExtractor={(item) => item.objectId ?? Math.random().toString()}
+      renderItem={renderItem}
+      contentContainerStyle={{ paddingBottom: 20 }}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  card: {
+    margin: 10,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+    elevation: 2,
   },
-  content: {
+  thumbnail: {
+    width: '100%',
+    height: 200,
+    backgroundColor: '#000',
+  },
+  badge: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 5,
+  },
+  badgeText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  info: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    padding: 10,
   },
   title: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#FFF',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 18,
-    color: '#FFF',
-    marginBottom: 16,
-  },
-  userId: {
-    fontSize: 14,
-    color: '#FFF',
-    opacity: 0.8,
-    marginBottom: 24,
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#FFF',
-  },
-  logoutText: {
-    color: '#FFF',
+    fontWeight: 'bold',
     fontSize: 16,
-    fontWeight: '700',
+    color: '#333',
+  },
+  vendor: {
+    fontSize: 13,
+    color: '#777',
+  },
+  button: {
+    backgroundColor: '#4267B2',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 5,
   },
 });

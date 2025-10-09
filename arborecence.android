@@ -24,3 +24,82 @@ shoplive-client/
 │   └── helpers.ts
 │
 └── App.tsx
+
+
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import { authStorage } from '@/utils/authStorage';
+import { LogOut } from 'lucide-react-native';
+
+export default function Home() {
+  const router = useRouter();
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    const id = await authStorage.getUserId();
+    setUserId(id);
+  };
+
+  const handleLogout = async () => {
+    await authStorage.clearAuthData();
+    router.replace('/(auth)/login');
+  };
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.content}>
+        <Text>tafita</Text>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  content: {
+    alignItems: 'center',
+    padding: 20,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#FFF',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 18,
+    color: '#FFF',
+    marginBottom: 16,
+  },
+  userId: {
+    fontSize: 14,
+    color: '#FFF',
+    opacity: 0.8,
+    marginBottom: 24,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FFF',
+  },
+  logoutText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+});

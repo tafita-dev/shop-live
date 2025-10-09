@@ -12,6 +12,8 @@ export default function Index() {
 
   const checkAuth = async () => {
     const token = await authStorage.getAuthToken();
+    const role = await authStorage.getuserRole();
+    console.log(role, 'roletoken');
 
     if (token) {
       router.replace('/(tabs)');
