@@ -38,7 +38,7 @@ export default function Login() {
     try {
       const loginResult = await loginWithEmailPassword(email.trim(), password);
       if (loginResult?.success) {
-        router.replace('/(tabs)');
+        router.replace('/(client)');
       } else {
         setShowErrorModal(true);
         const errorMessage = formatFirebaseError(loginResult?.error);

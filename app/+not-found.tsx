@@ -28,7 +28,7 @@ export default function NotFoundScreen() {
             La page que vous cherchez n’existe pas ou a été déplacée.
           </Text>
 
-          <Link href="/(tabs)" asChild>
+          <Link href="/(client)" asChild>
             <TouchableOpacity activeOpacity={0.8} style={styles.button}>
               <LinearGradient
                 colors={['#C200B0', '#6A00F4']}

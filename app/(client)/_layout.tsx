@@ -29,6 +29,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { authStorage, fetchFirebaseUserInfo } from '@/utils/authStorage';
 import { User as UserTypes } from '@/types/user';
+import ProtectUserRole from '@/components/ProtectUserRole';
 
 const { width } = Dimensions.get('window');
 
@@ -127,7 +128,7 @@ export default function TabsLayout() {
       friction: 5,
       tension: 80,
     }).start();
-    const path = `/(tabs)/${tab === 'home' ? '' : tab}` as any;
+    const path = `/(client)/${tab === 'home' ? '' : tab}` as any;
     router.replace(path);
     drawerRef.current?.closeDrawer();
   };
@@ -152,12 +153,16 @@ export default function TabsLayout() {
         {/* Menu */}
         <View style={styles.drawerMenu}>
           {[
-            { label: 'Live video', icon: Video, route: '/(tabs)' as const },
-            { label: 'Profil', icon: User, route: '/(tabs)/profile' as const },
+            { label: 'Live video', icon: Video, route: '/(client)' as const },
+            {
+              label: 'Profil',
+              icon: User,
+              route: '/(client)/profile' as const,
+            },
             {
               label: 'Réservations',
               icon: CalendarCheck,
-              route: '/(tabs)/reservation' as const,
+              route: '/(client)/reservation' as const,
             },
           ].map((item) => (
             <TouchableRipple
@@ -204,105 +209,107 @@ export default function TabsLayout() {
   );
 
   return (
-    <GestureHandlerRootView>
-      <DrawerLayout
-        ref={drawerRef}
-        drawerWidth={300} // drawer plus large
-        drawerPosition="right"
-        drawerBackgroundColor="#FFF"
-        renderNavigationView={renderDrawer}
-      >
-        <LinearGradient colors={['#FFF', '#F9FAFB']} style={styles.container}>
-          {/* HEADER 3D */}
-          <Appbar.Header style={styles.header}>
-            <View style={styles.logoContainer}>
-              <Text style={styles.subtitle}>Shop live</Text>
+    <ProtectUserRole role="client">
+      <GestureHandlerRootView>
+        <DrawerLayout
+          ref={drawerRef}
+          drawerWidth={300} // drawer plus large
+          drawerPosition="right"
+          drawerBackgroundColor="#FFF"
+          renderNavigationView={renderDrawer}
+        >
+          <LinearGradient colors={['#FFF', '#F9FAFB']} style={styles.container}>
+            {/* HEADER 3D */}
+            <Appbar.Header style={styles.header}>
+              <View style={styles.logoContainer}>
+                <Text style={styles.subtitle}>Shop live</Text>
+              </View>
+
+              <View style={styles.iconsRight}>
+                <TouchableRipple
+                  style={styles.iconButton}
+                  rippleColor="rgba(0,0,0,0.1)"
+                >
+                  <View style={{ position: 'relative' }}>
+                    <Bell size={28} color="#111827" />
+                    <View style={styles.badge} />
+                  </View>
+                </TouchableRipple>
+
+                <TouchableRipple
+                  style={styles.iconButton}
+                  rippleColor="rgba(0,0,0,0.1)"
+                  onPress={() => drawerRef.current?.openDrawer()}
+                >
+                  <Menu size={30} color="#111827" />
+                </TouchableRipple>
+              </View>
+            </Appbar.Header>
+
+            {/* TABS 3D */}
+            <LinearGradient colors={['#FFF', '#F3F4F6']} style={styles.tabBar}>
+              {['home', 'profile', 'reservation'].map((tab, index) => (
+                <TouchableRipple
+                  key={tab}
+                  style={styles.tabButtonMini} // mini-card style
+                  rippleColor="rgba(24,119,242,0.2)"
+                  onPress={() =>
+                    handleTabPress(tab as 'home' | 'profile' | 'reservation')
+                  }
+                >
+                  <View style={{ alignItems: 'center' }}>
+                    {tab === 'home' && (
+                      <Video
+                        size={26}
+                        color={activeTab === 'home' ? '#6A00F4' : '#8e8e93'}
+                      />
+                    )}
+                    {tab === 'reservation' && (
+                      <CalendarCheck
+                        size={26}
+                        color={
+                          activeTab === 'reservation' ? '#6A00F4' : '#8e8e93'
+                        }
+                      />
+                    )}
+                    {tab === 'profile' && (
+                      <User
+                        size={26}
+                        color={activeTab === 'profile' ? '#6A00F4' : '#8e8e93'}
+                      />
+                    )}
+                  </View>
+                </TouchableRipple>
+              ))}
+            </LinearGradient>
+
+            {/* Barre active 3D */}
+            <Animated.View
+              style={[
+                styles.activeIndicator,
+                {
+                  transform: [
+                    {
+                      translateX: indicatorAnim.interpolate({
+                        inputRange: [0, 1, 2],
+                        outputRange: [0, width / 3, (width / 3) * 2],
+                      }),
+                    },
+                    { perspective: 800 },
+                    { rotateX: '15deg' },
+                  ],
+                },
+              ]}
+            />
+
+            {/* Contenu */}
+            <View style={styles.content}>
+              <Slot />
             </View>
-
-            <View style={styles.iconsRight}>
-              <TouchableRipple
-                style={styles.iconButton}
-                rippleColor="rgba(0,0,0,0.1)"
-              >
-                <View style={{ position: 'relative' }}>
-                  <Bell size={28} color="#111827" />
-                  <View style={styles.badge} />
-                </View>
-              </TouchableRipple>
-
-              <TouchableRipple
-                style={styles.iconButton}
-                rippleColor="rgba(0,0,0,0.1)"
-                onPress={() => drawerRef.current?.openDrawer()}
-              >
-                <Menu size={30} color="#111827" />
-              </TouchableRipple>
-            </View>
-          </Appbar.Header>
-
-          {/* TABS 3D */}
-          <LinearGradient colors={['#FFF', '#F3F4F6']} style={styles.tabBar}>
-            {['home', 'profile', 'reservation'].map((tab, index) => (
-              <TouchableRipple
-                key={tab}
-                style={styles.tabButtonMini} // mini-card style
-                rippleColor="rgba(24,119,242,0.2)"
-                onPress={() =>
-                  handleTabPress(tab as 'home' | 'profile' | 'reservation')
-                }
-              >
-                <View style={{ alignItems: 'center' }}>
-                  {tab === 'home' && (
-                    <Video
-                      size={26}
-                      color={activeTab === 'home' ? '#6A00F4' : '#8e8e93'}
-                    />
-                  )}
-                  {tab === 'reservation' && (
-                    <CalendarCheck
-                      size={26}
-                      color={
-                        activeTab === 'reservation' ? '#6A00F4' : '#8e8e93'
-                      }
-                    />
-                  )}
-                  {tab === 'profile' && (
-                    <User
-                      size={26}
-                      color={activeTab === 'profile' ? '#6A00F4' : '#8e8e93'}
-                    />
-                  )}
-                </View>
-              </TouchableRipple>
-            ))}
           </LinearGradient>
-
-          {/* Barre active 3D */}
-          <Animated.View
-            style={[
-              styles.activeIndicator,
-              {
-                transform: [
-                  {
-                    translateX: indicatorAnim.interpolate({
-                      inputRange: [0, 1, 2],
-                      outputRange: [0, width / 3, (width / 3) * 2],
-                    }),
-                  },
-                  { perspective: 800 },
-                  { rotateX: '15deg' },
-                ],
-              },
-            ]}
-          />
-
-          {/* Contenu */}
-          <View style={styles.content}>
-            <Slot />
-          </View>
-        </LinearGradient>
-      </DrawerLayout>
-    </GestureHandlerRootView>
+        </DrawerLayout>
+      </GestureHandlerRootView>
+    </ProtectUserRole>
   );
 }
 
@@ -371,15 +378,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
   },
   logoContainer: { justifyContent: 'center' },
-  subtitle: {
-    color: '#E11D48',
-    fontSize: 20,
-    fontWeight: '700',
-    marginTop: 2,
-    textShadowColor: '#FFD700',
-    textShadowOffset: { width: 0.5, height: 0.5 },
-    textShadowRadius: 2,
-  },
+  subtitle: { color: '#E11D48', fontSize: 20, fontWeight: '700', marginTop: 2 },
   iconsRight: { flexDirection: 'row' },
   iconButton: { marginLeft: 15, padding: 6, borderRadius: 50 },
   badge: {

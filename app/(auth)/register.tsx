@@ -212,7 +212,7 @@ export default function Register(): JSX.Element {
         email,
         phone,
         password,
-        role: 'vendor',
+        role: 'client',
         authProviders: { emailPassword: true },
       });
       if (response.success) {
@@ -238,7 +238,7 @@ export default function Register(): JSX.Element {
     try {
       const loginResult = await loginWithEmailPassword(email, password);
       if (loginResult.success) {
-        router.replace('/(tabs)');
+        router.replace('/(client)');
       } else {
         setShowErrorModal(true);
         setErrorMessage(loginResult.error || 'Erreur de connexion automatique');
