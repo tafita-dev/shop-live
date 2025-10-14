@@ -218,7 +218,11 @@ export default function VendorLayout() {
           <LinearGradient colors={['#FFF', '#F9FAFB']} style={styles.container}>
             <Appbar.Header style={styles.header}>
               <View style={styles.logoContainer}>
-                <Text style={styles.subtitle}>Shop live</Text>
+                <Image
+                  source={require('../../assets/images/icon.png')}
+                  style={styles.logo}
+                  resizeMode="contain"
+                />
               </View>
 
               <View style={styles.iconsRight}>
@@ -309,6 +313,7 @@ export default function VendorLayout() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  logo: { width: 60, height: 60 },
   drawerContainer: { flex: 1, paddingHorizontal: 20, paddingTop: 10 },
   profileSection: { alignItems: 'center', marginBottom: 30 },
   avatar: {

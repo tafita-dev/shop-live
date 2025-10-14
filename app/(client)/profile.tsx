@@ -23,11 +23,7 @@ export default function Profile() {
     name: '',
     role: 'client',
     email: '',
-    authProviders: {
-      emailPassword: false,
-      facebookId: '',
-      googleId: '',
-    },
+    authProviders: { emailPassword: false, facebookId: '', googleId: '' },
     createdAt: '',
     phone: '',
     photoURL: '',
@@ -86,10 +82,7 @@ export default function Profile() {
   });
 
   return (
-    <LinearGradient
-      colors={['#4c669f', '#3b5998', '#192f6a']}
-      style={styles.container}
-    >
+    <LinearGradient colors={['#fff', '#EC4899']} style={styles.container}>
       <Animated.ScrollView
         contentContainerStyle={styles.scrollContainer}
         onScroll={Animated.event(
@@ -101,7 +94,11 @@ export default function Profile() {
         {/* Avatar et Nom */}
         <View style={styles.avatarWrapper}>
           <Animated.Image
-            source={{ uri: userInfo.photoURL }}
+            source={
+              userInfo.photoURL
+                ? { uri: userInfo.photoURL }
+                : require('../../assets/images/icon.png')
+            }
             style={[
               styles.avatar,
               {
@@ -113,7 +110,7 @@ export default function Profile() {
             ]}
           />
           <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
-            <Edit3 size={20} color="#FFF" />
+            <Edit3 size={20} color="#EC4899" />
           </TouchableOpacity>
         </View>
         <Text style={styles.name}>{userInfo.name}</Text>
@@ -143,12 +140,6 @@ export default function Profile() {
             );
           })}
         </View>
-
-        {/* Bouton Déconnexion */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <LogOut size={20} color="#FFF" />
-          <Text style={styles.logoutText}>Déconnexion</Text>
-        </TouchableOpacity>
       </Animated.ScrollView>
     </LinearGradient>
   );
@@ -168,20 +159,20 @@ const styles = StyleSheet.create({
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
     borderWidth: 3,
-    borderColor: '#FFF',
+    borderColor: '#EC4899',
   },
   editButton: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: '#6A00F4',
+    backgroundColor: '#FFFFFF',
     padding: 8,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: '#FFF',
+    borderColor: '#EC4899',
   },
-  name: { fontSize: 24, fontWeight: '700', color: '#FFF', marginTop: 5 },
-  role: { fontSize: 14, color: '#EDE9FE', marginBottom: 25 },
+  name: { fontSize: 24, fontWeight: '700', color: '#EC4899', marginTop: 5 },
+  role: { fontSize: 14, color: '#EC4899', marginBottom: 25 },
   cardsWrapper: {
     width: '100%',
     flexDirection: 'row',
@@ -191,16 +182,16 @@ const styles = StyleSheet.create({
   },
   card: {
     width: (width - 60) / 2,
-    backgroundColor: '#FFF',
+    backgroundColor: '#FFFFFF',
     borderRadius: 15,
     padding: 15,
     marginBottom: 15,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
-    elevation: 4,
+    elevation: 3,
   },
   cardLabel: { fontSize: 12, color: '#9CA3AF', marginBottom: 5 },
   cardValue: {
@@ -211,15 +202,17 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     flexDirection: 'row',
-    backgroundColor: '#E11D48',
+    backgroundColor: '#FFFFFF',
     paddingVertical: 12,
     paddingHorizontal: 25,
     borderRadius: 30,
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#EC4899',
     marginTop: 10,
   },
   logoutText: {
-    color: '#FFF',
+    color: '#EC4899',
     fontWeight: '600',
     marginLeft: 10,
     fontSize: 16,

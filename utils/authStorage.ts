@@ -57,6 +57,7 @@ import { getFirestore, doc, getDoc } from 'firebase/firestore';
 
 export const fetchFirebaseUserInfo = async () => {
   const auth = getAuth();
+  console.log(auth);
   const user = auth.currentUser;
 
   if (!user) {

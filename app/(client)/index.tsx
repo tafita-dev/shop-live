@@ -23,6 +23,7 @@ import { db } from '@/firebase/config';
 import { Live } from '@/types/live';
 import { Eye, Calendar, User } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web';
@@ -135,6 +136,11 @@ export default function HomeScreen() {
         </View>
 
         <TouchableOpacity
+          onPress={() =>
+            router.replace(
+              `/(live)/livedetails?id=${item.vendorId}&link=${item.facebookIframeUrl}`,
+            )
+          }
           style={[styles.button, !item.isActive && styles.buttonInactive]}
           activeOpacity={0.8}
         >
@@ -234,13 +240,13 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#ef4444',
+    backgroundColor: '#EC4899',
     marginRight: 6,
   },
   liveCountText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#ef4444',
+    color: '#EC4899',
   },
   listContent: {
     paddingVertical: 16,
@@ -290,7 +296,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#ef4444',
+    backgroundColor: '#EC4899',
     borderRadius: 20,
     opacity: 0.3,
     transform: [{ scale: 1.3 }],
@@ -303,8 +309,8 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   liveBadge: {
-    backgroundColor: '#ef4444',
-    shadowColor: '#ef4444',
+    backgroundColor: '#EC4899',
+    shadowColor: '#EC4899',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
@@ -376,14 +382,14 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   button: {
-    backgroundColor: '#4267B2',
+    backgroundColor: '#EC4899',
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    shadowColor: '#4267B2',
+    shadowColor: '#EC4899',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,

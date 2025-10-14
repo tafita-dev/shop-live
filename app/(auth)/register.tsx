@@ -275,10 +275,7 @@ export default function Register(): JSX.Element {
         onContinue={handleContinueToLogin}
       />
 
-      <LinearGradient
-        colors={['#8B5CF6', '#EC4899', '#F59E0B']}
-        style={styles.gradient}
-      >
+      <LinearGradient colors={['#EC4899', '#fff']} style={styles.gradient}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
@@ -303,21 +300,21 @@ export default function Register(): JSX.Element {
             {step === 1 && (
               <>
                 <InputField
-                  icon={<User size={20} color="#6B7280" />}
+                  icon={<User size={20} color="#EC4899" />}
                   placeholder="Nom d'utilisateur"
                   value={username}
                   onChangeText={setUsername}
                   error={errors.username}
                 />
                 <InputField
-                  icon={<Mail size={20} color="#6B7280" />}
+                  icon={<Mail size={20} color="#EC4899" />}
                   placeholder="Email"
                   value={email}
                   onChangeText={setEmail}
                   error={errors.emailPhone}
                 />
                 <InputField
-                  icon={<Phone size={20} color="#6B7280" />}
+                  icon={<Phone size={20} color="#EC4899" />}
                   placeholder="Téléphone"
                   value={phone}
                   onChangeText={setPhone}
@@ -326,14 +323,14 @@ export default function Register(): JSX.Element {
 
                 <TouchableOpacity
                   onPress={handleNextStep}
-                  style={styles.signUpButton}
+                  style={styles.primaryButton}
                   activeOpacity={0.8}
                 >
                   <LinearGradient
-                    colors={['#F59E0B', '#FBBF24']}
+                    colors={['#EC4899', '#FFB6C1']}
                     style={styles.buttonGradient}
                   >
-                    <Text style={styles.signUpText}>Suivant</Text>
+                    <Text style={styles.buttonText}>Suivant</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </>
@@ -342,7 +339,7 @@ export default function Register(): JSX.Element {
             {step === 2 && (
               <>
                 <InputField
-                  icon={<Lock size={20} color="#6B7280" />}
+                  icon={<Lock size={20} color="#EC4899" />}
                   placeholder="Mot de passe"
                   value={password}
                   onChangeText={setPassword}
@@ -352,7 +349,7 @@ export default function Register(): JSX.Element {
                   error={errors.password}
                 />
                 <InputField
-                  icon={<Lock size={20} color="#6B7280" />}
+                  icon={<Lock size={20} color="#EC4899" />}
                   placeholder="Confirmer le mot de passe"
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
@@ -383,7 +380,7 @@ export default function Register(): JSX.Element {
                     disabled={loading}
                   >
                     <LinearGradient
-                      colors={['#F59E0B', '#FBBF24']}
+                      colors={['#EC4899', '#FFB6C1']}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 0 }}
                       style={styles.buttonGradient}
@@ -417,7 +414,7 @@ const styles = StyleSheet.create({
     paddingTop: height * 0.05,
     paddingBottom: height * 0.03,
   },
-  logo: { width: 120, height: 120 },
+  logo: { width: 130, height: 130, backgroundColor: '#fff' },
   title: {
     fontSize: width * 0.08,
     fontWeight: '700',

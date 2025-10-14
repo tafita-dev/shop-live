@@ -17,8 +17,8 @@ import { FontAwesome } from '@expo/vector-icons';
 import Spinner from 'react-native-loading-spinner-overlay';
 import { loginWithEmailPassword } from '@/utils/authServices';
 import SuccessModal from '@/components/SuccesModal';
-import { formatFirebaseError } from '@/utils/fromater';
 import ErrorModal from '@/components/ErrorModal';
+import { formatFirebaseError } from '@/utils/fromater';
 
 const { width } = Dimensions.get('window');
 
@@ -58,10 +58,7 @@ export default function Login() {
   };
 
   return (
-    <LinearGradient
-      colors={['#6A00F4', '#C200B0', '#FF6B00']}
-      style={styles.container}
-    >
+    <LinearGradient colors={['#EC4899', '#EC4899']} style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
@@ -97,7 +94,6 @@ export default function Login() {
               style={styles.logo}
               resizeMode="contain"
             />
-            <Text style={styles.title}>Bienvenue 👋</Text>
             <Text style={styles.subtitle}>Connecte-toi pour continuer</Text>
           </View>
 
@@ -106,7 +102,7 @@ export default function Login() {
             <Text style={styles.label}>Email</Text>
             <TextInput
               placeholder="Entrez votre email"
-              placeholderTextColor="#ddd"
+              placeholderTextColor="rgba(255,255,255,0.7)"
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -118,7 +114,7 @@ export default function Login() {
             <View style={styles.passwordContainer}>
               <TextInput
                 placeholder="Entrez votre mot de passe"
-                placeholderTextColor="#ddd"
+                placeholderTextColor="rgba(255,255,255,0.7)"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
@@ -144,7 +140,14 @@ export default function Login() {
 
           {/* Bouton principal */}
           <TouchableOpacity style={styles.mainButton} onPress={handleLogin}>
-            <Text style={styles.mainButtonText}>Se connecter</Text>
+            <LinearGradient
+              colors={['#EC4899', '#fff']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.mainButtonGradient}
+            >
+              <Text style={styles.mainButtonText}>Se connecter</Text>
+            </LinearGradient>
           </TouchableOpacity>
 
           {/* Boutons sociaux */}
@@ -156,7 +159,7 @@ export default function Login() {
 
             <TouchableOpacity style={[styles.socialButton, styles.facebook]}>
               <FontAwesome name="facebook" size={20} color="#fff" />
-              <Text style={styles.socialText}>Continuer avec Facebook</Text>
+              <Text style={styles.socialTextF}>Continuer avec Facebook</Text>
             </TouchableOpacity>
           </View>
 
@@ -184,51 +187,70 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 30,
   },
-  logoContainer: { alignItems: 'center', marginBottom: 30 },
-  logo: { width: 120, height: 120 },
-  title: { color: '#fff', fontSize: 30, fontWeight: '800', marginTop: 10 },
-  subtitle: { color: '#fff', fontSize: 16, opacity: 0.9, marginBottom: 20 },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  logo: { width: 130, height: 130, backgroundColor: '#fff' },
+  subtitle: {
+    color: '#fff',
+    fontSize: 17,
+    fontWeight: '500',
+    opacity: 0.95,
+    marginTop: 10,
+  },
   form: { marginBottom: 20 },
   label: { color: '#fff', fontSize: 14, marginBottom: 6, marginTop: 12 },
   input: {
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: 'rgba(255,255,255,0.15)',
     color: '#fff',
-    borderRadius: 30,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    borderRadius: 25,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
     fontSize: 16,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
-  passwordContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    position: 'relative',
-  },
+  passwordContainer: { flexDirection: 'row', alignItems: 'center' },
   eyeIcon: { position: 'absolute', right: 16, top: '35%' },
   forgotPassword: { alignItems: 'flex-end', marginTop: 6 },
-  forgotText: { color: '#FFD700', fontWeight: '600' },
-  mainButton: {
-    backgroundColor: '#FFD700',
+  forgotText: { color: '#fff', fontWeight: '600' },
+  mainButton: { marginTop: 10, borderRadius: 30 },
+  mainButtonGradient: {
     borderRadius: 30,
     paddingVertical: 16,
     alignItems: 'center',
-    marginTop: 10,
+    shadowColor: '#EC4899',
+    shadowOpacity: 0.5,
+    shadowOffset: { width: 0, height: 4 },
   },
-  mainButtonText: { color: '#6A00F4', fontSize: 18, fontWeight: '700' },
+  mainButtonText: { color: '#fff', fontSize: 18, fontWeight: '700' },
   socialContainer: { marginTop: 25 },
   socialButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 30,
+    borderRadius: 25,
     paddingVertical: 14,
     marginBottom: 12,
   },
-  google: { backgroundColor: '#EA4335' },
+  google: { backgroundColor: '#fff' },
   facebook: { backgroundColor: '#1877F2' },
-  socialText: { color: '#fff', fontSize: 16, marginLeft: 8, fontWeight: '600' },
+  socialText: {
+    color: '#EC4899',
+    fontSize: 16,
+    marginLeft: 8,
+    fontWeight: '600',
+  },
+  socialTextF: {
+    color: '#fff',
+    fontSize: 16,
+    marginLeft: 8,
+    fontWeight: '600',
+  },
   registerLink: { marginTop: 15, alignItems: 'center' },
   registerText: { color: '#fff', fontSize: 14 },
-  registerHighlight: { fontWeight: 'bold', textDecorationLine: 'underline' },
-  spinnerText: { color: '#FFF', fontSize: width * 0.04, fontWeight: '600' },
+  registerHighlight: { fontWeight: 'bold', color: '#fff' },
+  spinnerText: { color: '#fff', fontSize: width * 0.04, fontWeight: '600' },
 });

@@ -35,7 +35,7 @@ export default function ErrorModal({
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
           <View style={styles.iconContainer}>
-            <AlertCircle size={80} color="#da1212ff" strokeWidth={2} />
+            <AlertCircle size={80} color="#EC4899" strokeWidth={2} />
           </View>
 
           <Text style={styles.message}>{message}</Text>
@@ -46,7 +46,7 @@ export default function ErrorModal({
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={['#e20e0eff', '#ee0e0eff']}
+              colors={['#EC4899', '#EC4899']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.buttonGradient}
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
   },
   message: {
     fontSize: width * 0.04,
-    color: '#ee0b29ff',
+    color: '#EC4899',
     marginBottom: height * 0.03,
     textAlign: 'center',
     lineHeight: width * 0.055,

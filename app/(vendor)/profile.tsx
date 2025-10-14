@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Dimensions,
   Animated,
-  ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Edit3, LogOut } from 'lucide-react-native';
@@ -23,11 +22,7 @@ export default function Profile() {
     name: '',
     role: 'client',
     email: '',
-    authProviders: {
-      emailPassword: false,
-      facebookId: '',
-      googleId: '',
-    },
+    authProviders: { emailPassword: false, facebookId: '', googleId: '' },
     createdAt: '',
     phone: '',
     photoURL: '',
@@ -72,7 +67,6 @@ export default function Profile() {
     { label: 'Rôle', value: userInfo.role },
   ];
 
-  // Animations parallaxe
   const avatarScale = scrollY.interpolate({
     inputRange: [0, 150],
     outputRange: [1, AVATAR_MIN_SIZE / AVATAR_SIZE],
@@ -87,7 +81,9 @@ export default function Profile() {
 
   return (
     <LinearGradient
-      colors={['#4c669f', '#3b5998', '#192f6a']}
+      colors={['#1A0033', '#4C0070', '#FF006A']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
       style={styles.container}
     >
       <Animated.ScrollView
@@ -98,56 +94,78 @@ export default function Profile() {
         )}
         scrollEventThrottle={16}
       >
-        {/* Avatar et Nom */}
+        {/* Avatar avec effet Glow */}
         <View style={styles.avatarWrapper}>
-          <Animated.Image
-            source={{ uri: userInfo.photoURL }}
-            style={[
-              styles.avatar,
-              {
-                transform: [
-                  { scale: avatarScale },
-                  { translateY: avatarTranslateY },
-                ],
-              },
-            ]}
-          />
+          <LinearGradient
+            colors={['#FF6B00', '#FF00CC']}
+            style={styles.avatarGlow}
+          >
+            <Animated.Image
+              source={
+                userInfo.photoURL
+                  ? { uri: userInfo.photoURL }
+                  : require('../../assets/images/icon.png')
+              }
+              style={[
+                styles.avatar,
+                {
+                  transform: [
+                    { scale: avatarScale },
+                    { translateY: avatarTranslateY },
+                  ],
+                },
+              ]}
+            />
+          </LinearGradient>
           <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
             <Edit3 size={20} color="#FFF" />
           </TouchableOpacity>
         </View>
-        <Text style={styles.name}>{userInfo.name}</Text>
-        <Text style={styles.role}>{userInfo.role.toUpperCase()}</Text>
 
-        {/* Mini-cards */}
+        <Text style={styles.name}>{userInfo.name || 'Utilisateur'}</Text>
+        <Text style={styles.role}>
+          {userInfo.role ? userInfo.role.toUpperCase() : 'CLIENT'}
+        </Text>
+
+        {/* Informations */}
         <View style={styles.cardsWrapper}>
-          {cards.map((item, index) => {
-            const translateY = scrollY.interpolate({
-              inputRange: [-1, 0, 100 * index, 100 * (index + 2)],
-              outputRange: [0, 0, 0, 20],
-              extrapolate: 'clamp',
-            });
-            const opacity = scrollY.interpolate({
-              inputRange: [0, 100 * (index + 1)],
-              outputRange: [1, 0.7],
-              extrapolate: 'clamp',
-            });
-            return (
-              <Animated.View
-                key={item.label}
-                style={[styles.card, { transform: [{ translateY }], opacity }]}
-              >
-                <Text style={styles.cardLabel}>{item.label}</Text>
-                <Text style={styles.cardValue}>{item.value}</Text>
-              </Animated.View>
-            );
-          })}
+          {cards.map((item, index) => (
+            <Animated.View
+              key={item.label}
+              style={[
+                styles.card,
+                {
+                  transform: [
+                    {
+                      scale: scrollY.interpolate({
+                        inputRange: [0, 100 * (index + 1)],
+                        outputRange: [1, 0.98],
+                        extrapolate: 'clamp',
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              <Text style={styles.cardLabel}>{item.label}</Text>
+              <Text style={styles.cardValue}>
+                {item.value || 'Non renseigné'}
+              </Text>
+            </Animated.View>
+          ))}
         </View>
 
         {/* Bouton Déconnexion */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <LogOut size={20} color="#FFF" />
-          <Text style={styles.logoutText}>Déconnexion</Text>
+          <LinearGradient
+            colors={['#FF3366', '#FF6B00']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.logoutGradient}
+          >
+            <LogOut size={20} color="#FFF" />
+            <Text style={styles.logoutText}>Déconnexion</Text>
+          </LinearGradient>
         </TouchableOpacity>
       </Animated.ScrollView>
     </LinearGradient>
@@ -158,17 +176,24 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContainer: {
     alignItems: 'center',
-    paddingTop: 60,
+    paddingTop: 80,
     paddingBottom: 50,
     paddingHorizontal: 20,
   },
-  avatarWrapper: { position: 'relative', marginBottom: 15 },
+  avatarWrapper: { position: 'relative', marginBottom: 20 },
+  avatarGlow: {
+    borderRadius: 100,
+    padding: 4,
+    shadowColor: '#FF00CC',
+    shadowOpacity: 0.7,
+    shadowRadius: 20,
+  },
   avatar: {
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
-    borderWidth: 3,
-    borderColor: '#FFF',
+    borderWidth: 2,
+    borderColor: '#fff',
   },
   editButton: {
     position: 'absolute',
@@ -180,8 +205,22 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#FFF',
   },
-  name: { fontSize: 24, fontWeight: '700', color: '#FFF', marginTop: 5 },
-  role: { fontSize: 14, color: '#EDE9FE', marginBottom: 25 },
+  name: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFF',
+    marginTop: 10,
+    textShadowColor: 'rgba(255,255,255,0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
+  },
+  role: {
+    fontSize: 14,
+    color: '#FFD700',
+    marginBottom: 25,
+    letterSpacing: 1,
+    fontWeight: '600',
+  },
   cardsWrapper: {
     width: '100%',
     flexDirection: 'row',
@@ -191,37 +230,51 @@ const styles = StyleSheet.create({
   },
   card: {
     width: (width - 60) / 2,
-    backgroundColor: '#FFF',
-    borderRadius: 15,
-    padding: 15,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 20,
+    padding: 18,
     marginBottom: 15,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 4,
+    shadowColor: '#FF00CC',
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
   },
-  cardLabel: { fontSize: 12, color: '#9CA3AF', marginBottom: 5 },
+  cardLabel: {
+    fontSize: 12,
+    color: '#E5E7EB',
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
   cardValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: '#FFF',
     textAlign: 'center',
   },
   logoutButton: {
-    flexDirection: 'row',
-    backgroundColor: '#E11D48',
-    paddingVertical: 12,
-    paddingHorizontal: 25,
-    borderRadius: 30,
-    alignItems: 'center',
     marginTop: 10,
+    width: '80%',
+    borderRadius: 30,
+    overflow: 'hidden',
+  },
+  logoutGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 30,
+    shadowColor: '#FF006A',
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
   },
   logoutText: {
     color: '#FFF',
-    fontWeight: '600',
+    fontWeight: '700',
     marginLeft: 10,
     fontSize: 16,
+    letterSpacing: 0.5,
   },
 });

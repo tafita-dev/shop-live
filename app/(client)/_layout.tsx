@@ -175,7 +175,7 @@ export default function TabsLayout() {
               }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <item.icon size={22} color="#6A00F4" />
+                <item.icon size={22} color="#EC4899" />
                 <Text style={[styles.drawerText, { marginLeft: 12 }]}>
                   {item.label}
                 </Text>
@@ -192,11 +192,11 @@ export default function TabsLayout() {
             onPress={handleLogout}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <LogOut size={22} color="#E11D48" />
+              <LogOut size={22} color="#EC4899" />
               <Text
                 style={[
                   styles.drawerText,
-                  { color: '#E11D48', marginLeft: 12 },
+                  { color: '#EC4899', marginLeft: 12 },
                 ]}
               >
                 Déconnexion
@@ -222,7 +222,11 @@ export default function TabsLayout() {
             {/* HEADER 3D */}
             <Appbar.Header style={styles.header}>
               <View style={styles.logoContainer}>
-                <Text style={styles.subtitle}>Shop live</Text>
+                <Image
+                  source={require('../../assets/images/icon.png')}
+                  style={styles.logo}
+                  resizeMode="contain"
+                />
               </View>
 
               <View style={styles.iconsRight}>
@@ -261,21 +265,21 @@ export default function TabsLayout() {
                     {tab === 'home' && (
                       <Video
                         size={26}
-                        color={activeTab === 'home' ? '#6A00F4' : '#8e8e93'}
+                        color={activeTab === 'home' ? '#EC4899' : '#8e8e93'}
                       />
                     )}
                     {tab === 'reservation' && (
                       <CalendarCheck
                         size={26}
                         color={
-                          activeTab === 'reservation' ? '#6A00F4' : '#8e8e93'
+                          activeTab === 'reservation' ? '#EC4899' : '#8e8e93'
                         }
                       />
                     )}
                     {tab === 'profile' && (
                       <User
                         size={26}
-                        color={activeTab === 'profile' ? '#6A00F4' : '#8e8e93'}
+                        color={activeTab === 'profile' ? '#EC4899' : '#8e8e93'}
                       />
                     )}
                   </View>
@@ -315,6 +319,7 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  logo: { width: 60, height: 60 },
   drawerContainer: {
     flex: 1,
     paddingHorizontal: 20,
@@ -329,7 +334,7 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     borderWidth: 2,
-    borderColor: '#6A00F4',
+    borderColor: '#EC4899',
   },
   userName: {
     fontSize: 16,
@@ -372,7 +377,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     elevation: 6,
-    shadowColor: '#6A00F4',
+    shadowColor: '#EC4899',
     shadowOpacity: 0.3,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 4 },
@@ -399,7 +404,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#DDD',
     height: 55,
     alignItems: 'center',
-    shadowColor: '#6A00F4',
+    shadowColor: '#EC4899',
     shadowOpacity: 0.2,
     shadowRadius: 5,
     shadowOffset: { width: 0, height: -2 },
@@ -421,9 +426,9 @@ const styles = StyleSheet.create({
   activeIndicator: {
     height: 4,
     width: width / 3,
-    backgroundColor: '#FFD700',
+    backgroundColor: '#EC4899',
     borderRadius: 4,
-    shadowColor: '#FFD700',
+    shadowColor: '#EC4899',
     shadowOpacity: 0.8,
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 3 },

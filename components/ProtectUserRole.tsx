@@ -1,5 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator, StyleSheet, Alert } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  TouchableOpacity,
+  Animated,
+  Easing,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { authStorage } from '@/utils/authStorage';
 
@@ -13,6 +21,12 @@ export default function ProtectUserRole({
   children,
 }: ProtectUserRoleProps) {
   const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [userRoleDetected, setUserRoleDetected] = useState<
+    'vendor' | 'client' | null
+  >(null);
+  const modalAnim = useRef(new Animated.Value(0)).current;
+
   const router = useRouter();
 
   useEffect(() => {
@@ -21,39 +35,32 @@ export default function ProtectUserRole({
     const checkAuth = async () => {
       try {
         const token = await authStorage.getAuthToken();
-        const userRole = await authStorage.getuserRole();
+        const userRole: string | null = await authStorage.getuserRole();
 
         if (!isMounted) return;
 
         if (!token || !userRole) {
-          // Pas connecté → redirige vers login
           router.replace('/(auth)/login');
           return;
         }
-        console.log(role);
+
+        // Valider que userRole est bien 'vendor' ou 'client'
+        if (userRole !== 'vendor' && userRole !== 'client') {
+          router.replace('/(auth)/login');
+          return;
+        }
 
         if (userRole !== role) {
-          // Rôle incorrect → alerte et redirection vers la bonne zone
-          Alert.alert(
-            'Accès refusé',
-            `Vous n'avez pas le rôle ${role} pour accéder à cette page.`,
-            [
-              {
-                text: 'Non',
-                onPress: () => {
-                  authStorage.clearAuthData();
-                  router.replace('/(auth)/login');
-                },
-              },
-              {
-                text: 'oui',
-                onPress: () =>
-                  router.replace(
-                    userRole === 'vendor' ? '/(vendor)' : '/(client)',
-                  ),
-              },
-            ],
-          );
+          setUserRoleDetected(userRole); // ✅ maintenant TypeScript est content
+          setLoading(false);
+          setShowModal(true);
+
+          Animated.timing(modalAnim, {
+            toValue: 1,
+            duration: 300,
+            easing: Easing.out(Easing.exp),
+            useNativeDriver: true,
+          }).start();
           return;
         }
 
@@ -72,15 +79,53 @@ export default function ProtectUserRole({
     };
   }, [role, router]);
 
+  const handleRedirect = (redirect: boolean) => {
+    setShowModal(false);
+    if (redirect) {
+      router.replace(userRoleDetected === 'vendor' ? '/(vendor)' : '/(client)');
+    } else {
+      authStorage.clearAuthData();
+      router.replace('/(auth)/login');
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6A00F4" />
+        <ActivityIndicator size="large" color="#EC4899" />
       </View>
     );
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      {showModal && (
+        <Animated.View style={[styles.modalOverlay, { opacity: modalAnim }]}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Accès refusé</Text>
+            <Text style={styles.modalMessage}>
+              Vous n'avez pas le rôle {role} pour accéder à cette page.
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => handleRedirect(false)}
+              >
+                <Text style={styles.buttonText}>Non</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.confirmButton]}
+                onPress={() => handleRedirect(true)}
+              >
+                <Text style={styles.buttonText}>Oui</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Animated.View>
+      )}
+    </>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -89,5 +134,63 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  modalContent: {
+    width: '80%',
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#EC4899',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 16,
+    color: '#111827',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    width: '100%',
+    justifyContent: 'space-between',
+  },
+  modalButton: {
+    flex: 0.45,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#6B7280',
+  },
+  confirmButton: {
+    backgroundColor: '#EC4899',
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 16,
   },
 });
