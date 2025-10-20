@@ -2,7 +2,7 @@ import { db } from '@/firebase/config';
 import { Live } from '@/types/live';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 
-export class LiveService {
+export default class LiveService {
   static async createLive(live: Live) {
     try {
       const docRef = await addDoc(collection(db, 'lives'), {

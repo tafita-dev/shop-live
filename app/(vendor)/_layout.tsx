@@ -49,7 +49,7 @@ export default function VendorLayout() {
   const drawerRef = React.useRef<DrawerLayout>(null);
 
   const [activeTab, setActiveTab] = React.useState<
-    'home' | 'products' | 'orders' | 'profile'
+    'home' | 'categorie' | 'orders' | 'profile'
   >('home');
   const indicatorAnim = React.useRef(new Animated.Value(0)).current;
   const segments = useSegments();
@@ -57,7 +57,7 @@ export default function VendorLayout() {
   React.useEffect(() => {
     const currentSegment = segments[segments.length - 1];
     const tabIndex =
-      currentSegment === 'products'
+      currentSegment === 'categorie'
         ? 1
         : currentSegment === 'orders'
         ? 2
@@ -65,8 +65,8 @@ export default function VendorLayout() {
         ? 3
         : 0;
     setActiveTab(
-      currentSegment === 'products'
-        ? 'products'
+      currentSegment === 'categorie'
+        ? 'categorie'
         : currentSegment === 'orders'
         ? 'orders'
         : currentSegment === 'profile'
@@ -113,9 +113,9 @@ export default function VendorLayout() {
     ]);
   };
 
-  const handleTabPress = (tab: 'home' | 'products' | 'orders' | 'profile') => {
+  const handleTabPress = (tab: 'home' | 'categorie' | 'orders' | 'profile') => {
     setActiveTab(tab);
-    const positions = { home: 0, products: 1, orders: 2, profile: 3 };
+    const positions = { home: 0, categorie: 1, orders: 2, profile: 3 };
     Animated.spring(indicatorAnim, {
       toValue: positions[tab],
       useNativeDriver: true,
@@ -150,7 +150,7 @@ export default function VendorLayout() {
             {
               label: 'Produits',
               icon: ShoppingBag,
-              route: '/(vendor)/products' as const,
+              route: '/(vendor)/categorie' as const,
             },
             {
               label: 'Commandes',
@@ -173,7 +173,7 @@ export default function VendorLayout() {
               }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <item.icon size={22} color="#6A00F4" />
+                <item.icon size={22} color="#EC4899" />
                 <Text style={[styles.drawerText, { marginLeft: 12 }]}>
                   {item.label}
                 </Text>
@@ -189,11 +189,11 @@ export default function VendorLayout() {
             onPress={handleLogout}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <LogOut size={22} color="#E11D48" />
+              <LogOut size={22} color="#EC4899" />
               <Text
                 style={[
                   styles.drawerText,
-                  { color: '#E11D48', marginLeft: 12 },
+                  { color: '#EC4899', marginLeft: 12 },
                 ]}
               >
                 Déconnexion
@@ -244,7 +244,7 @@ export default function VendorLayout() {
             </Appbar.Header>
 
             <LinearGradient colors={['#FFF', '#F3F4F6']} style={styles.tabBar}>
-              {['home', 'products', 'orders', 'profile'].map((tab, index) => (
+              {['home', 'categorie', 'orders', 'profile'].map((tab, index) => (
                 <TouchableRipple
                   key={tab}
                   style={styles.tabButtonMini}
@@ -254,25 +254,27 @@ export default function VendorLayout() {
                     {tab === 'home' && (
                       <Home
                         size={26}
-                        color={activeTab === 'home' ? '#6A00F4' : '#8e8e93'}
+                        color={activeTab === 'home' ? '#EC4899' : '#8e8e93'}
                       />
                     )}
-                    {tab === 'products' && (
+                    {tab === 'categorie' && (
                       <ShoppingBag
                         size={26}
-                        color={activeTab === 'products' ? '#6A00F4' : '#8e8e93'}
+                        color={
+                          activeTab === 'categorie' ? '#EC4899' : '#8e8e93'
+                        }
                       />
                     )}
                     {tab === 'orders' && (
                       <Clipboard
                         size={26}
-                        color={activeTab === 'orders' ? '#6A00F4' : '#8e8e93'}
+                        color={activeTab === 'orders' ? '#EC4899' : '#8e8e93'}
                       />
                     )}
                     {tab === 'profile' && (
                       <User
                         size={26}
-                        color={activeTab === 'profile' ? '#6A00F4' : '#8e8e93'}
+                        color={activeTab === 'profile' ? '#EC4899' : '#8e8e93'}
                       />
                     )}
                   </View>
@@ -321,7 +323,7 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     borderWidth: 2,
-    borderColor: '#6A00F4',
+    borderColor: '#EC4899',
   },
   userName: {
     fontSize: 16,
@@ -368,7 +370,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     height: 55,
     alignItems: 'center',
-    shadowColor: '#6A00F4',
+    shadowColor: '#EC4899',
     shadowOpacity: 0.2,
     shadowRadius: 5,
     shadowOffset: { width: 0, height: -2 },
@@ -390,9 +392,9 @@ const styles = StyleSheet.create({
   activeIndicator: {
     height: 4,
     width: width / 4,
-    backgroundColor: '#FFD700',
+    backgroundColor: '#EC4899',
     borderRadius: 4,
-    shadowColor: '#FFD700',
+    shadowColor: '#EC4899',
     shadowOpacity: 0.8,
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 3 },

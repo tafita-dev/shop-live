@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { Plus, Edit, Trash2 } from 'lucide-react-native';
+import { router } from 'expo-router';
 
 export default function VendorProducts() {
   const [products, setProducts] = useState([
@@ -33,7 +34,7 @@ export default function VendorProducts() {
   ]);
 
   const handleAdd = () => {
-    Alert.alert('Ajouter', 'Ici tu pourras ajouter un nouveau produit 🛍️');
+    router.push('/(vendor)/categorie');
   };
 
   const handleEdit = (item: any) => {
@@ -82,7 +83,7 @@ export default function VendorProducts() {
     <View style={styles.container}>
       {/* Titre */}
       <View style={styles.header}>
-        <Text style={styles.title}>Mes Produits</Text>
+        <Text style={styles.title}>Mes Catégories</Text>
         <TouchableOpacity onPress={handleAdd} style={styles.addButton}>
           <Plus size={20} color="#fff" />
           <Text style={styles.addText}>Ajouter</Text>
