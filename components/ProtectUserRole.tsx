@@ -92,7 +92,7 @@ export default function ProtectUserRole({
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#EC4899" />
+        <ActivityIndicator size="large" color="#fff" />
       </View>
     );
   }

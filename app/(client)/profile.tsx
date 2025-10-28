@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,19 +7,25 @@ import {
   TouchableOpacity,
   Dimensions,
   Animated,
-  ScrollView,
+  TextInput,
+  Alert,
+  ActivityIndicator, // ⬅️ IMPORTÉ : Indicateur de chargement
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Edit3, LogOut } from 'lucide-react-native';
+import { Edit3, X, Save, Camera } from 'lucide-react-native';
+// NOTE : Vous aurez besoin d'installer 'expo-image-picker' pour la vraie gestion de photo.
+// import * as ImagePicker from 'expo-image-picker';
+
 import { User } from '@/types/user';
 import { fetchFirebaseUserInfo } from '@/utils/authStorage';
+import ProfileScreen from '@/components/ProfileScreen'; // Le composant qui affiche le profil
 
 const { width } = Dimensions.get('window');
 const AVATAR_SIZE = 110;
-const AVATAR_MIN_SIZE = 70;
+const PRIMARY_COLOR = '#EC4899'; // Couleur principale pour le chargement
 
 export default function Profile() {
-  const [userInfo, setUserInfo] = React.useState<User>({
+  const initialUserInfo: User = {
     name: '',
     role: 'client',
     email: '',
@@ -27,194 +33,150 @@ export default function Profile() {
     createdAt: '',
     phone: '',
     photoURL: '',
-  });
+  };
 
-  const scrollY = React.useRef(new Animated.Value(0)).current;
+  // 1. État principal (données sauvegardées)
+  const [userInfo, setUserInfo] = useState<User>(initialUserInfo);
+  // 2. État temporaire (données en cours d'édition)
+  const [tempUserInfo, setTempUserInfo] = useState<User>(initialUserInfo);
+  // 3. État du mode édition
+  const [isEditing, setIsEditing] = useState(false);
+  // 4. 🚀 NOUVEL ÉTAT DE CHARGEMENT
+  const [isLoading, setIsLoading] = useState(true);
+  // 5. État d'erreur si le chargement échoue
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  React.useEffect(() => {
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  // Chargement initial des données
+  useEffect(() => {
     const loadUserData = async () => {
+      setIsLoading(true); // ⬅️ Démarre le chargement
+      setLoadError(null); // Réinitialise l'erreur
+
       try {
         const data = await fetchFirebaseUserInfo();
         if (data) {
+          // Logique pour s'assurer que le rôle est valide
           const role =
             data.role === 'client' || data.role === 'vendor'
               ? data.role
               : 'client';
-          setUserInfo((prev) => ({
-            ...prev,
-            name: data.name || prev.name,
-            photoURL: data.photoURL || prev.photoURL,
-            email: data.email || prev.email,
+
+          // Création de l'objet utilisateur complet à partir des données
+          const loadedInfo: User = {
+            ...initialUserInfo,
+            name: data.name || initialUserInfo.name,
+            photoURL: data.photoURL || initialUserInfo.photoURL,
+            email: data.email || initialUserInfo.email,
             role,
-            phone: data.phone || prev.phone,
-          }));
+            phone: data.phone || initialUserInfo.phone,
+          };
+
+          setUserInfo(loadedInfo);
+          setTempUserInfo(loadedInfo); // Initialiser l'état temporaire avec les données chargées
+        } else {
+          // Si fetchFirebaseUserInfo retourne null/undefined
+          setLoadError(
+            "Impossible de trouver les informations de l'utilisateur.",
+          );
         }
       } catch (error) {
         console.error(
           'Erreur lors du chargement des infos utilisateur:',
           error,
         );
+        setLoadError('Une erreur réseau ou interne est survenue.');
+      } finally {
+        setIsLoading(false); // ⬅️ Termine le chargement, qu'il y ait eu succès ou erreur
       }
     };
     loadUserData();
   }, []);
 
-  const handleEdit = () => console.log('Modifier le profil');
-  const handleLogout = () => console.log('Déconnexion');
+  // 🚀 LOGIQUE D'AFFICHAGE CONDITIONNEL
 
-  const cards = [
-    { label: 'Email', value: userInfo.email },
-    { label: 'Téléphone', value: userInfo.phone },
-    { label: 'Rôle', value: userInfo.role },
-  ];
+  // 1. Si le chargement est en cours
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={PRIMARY_COLOR} />
+        <Text style={styles.loadingText}>Chargement du profil...</Text>
+      </View>
+    );
+  }
 
-  // Animations parallaxe
-  const avatarScale = scrollY.interpolate({
-    inputRange: [0, 150],
-    outputRange: [1, AVATAR_MIN_SIZE / AVATAR_SIZE],
-    extrapolate: 'clamp',
-  });
-
-  const avatarTranslateY = scrollY.interpolate({
-    inputRange: [0, 150],
-    outputRange: [0, -30],
-    extrapolate: 'clamp',
-  });
-
-  return (
-    <LinearGradient colors={['#fff', '#EC4899']} style={styles.container}>
-      <Animated.ScrollView
-        contentContainerStyle={styles.scrollContainer}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true },
-        )}
-        scrollEventThrottle={16}
-      >
-        {/* Avatar et Nom */}
-        <View style={styles.avatarWrapper}>
-          <Animated.Image
-            source={
-              userInfo.photoURL
-                ? { uri: userInfo.photoURL }
-                : require('../../assets/images/icon.png')
-            }
-            style={[
-              styles.avatar,
-              {
-                transform: [
-                  { scale: avatarScale },
-                  { translateY: avatarTranslateY },
-                ],
-              },
-            ]}
-          />
-          <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
-            <Edit3 size={20} color="#EC4899" />
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.name}>{userInfo.name}</Text>
-        <Text style={styles.role}>{userInfo.role.toUpperCase()}</Text>
-
-        {/* Mini-cards */}
-        <View style={styles.cardsWrapper}>
-          {cards.map((item, index) => {
-            const translateY = scrollY.interpolate({
-              inputRange: [-1, 0, 100 * index, 100 * (index + 2)],
-              outputRange: [0, 0, 0, 20],
-              extrapolate: 'clamp',
-            });
-            const opacity = scrollY.interpolate({
-              inputRange: [0, 100 * (index + 1)],
-              outputRange: [1, 0.7],
-              extrapolate: 'clamp',
-            });
-            return (
-              <Animated.View
-                key={item.label}
-                style={[styles.card, { transform: [{ translateY }], opacity }]}
-              >
-                <Text style={styles.cardLabel}>{item.label}</Text>
-                <Text style={styles.cardValue}>{item.value}</Text>
-              </Animated.View>
+  // 2. Si le chargement a échoué
+  if (loadError) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Erreur de chargement : {loadError}</Text>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={() => {
+            // Redéclencher le chargement initial en mettant à jour une dépendance si nécessaire,
+            // ou simplement en rappelant la fonction de chargement si elle était dans l'effet,
+            // pour l'instant, on laisse l'utilisateur revenir à l'écran précédent.
+            Alert.alert(
+              'Erreur',
+              "Veuillez redémarrer l'application ou réessayer plus tard.",
             );
-          })}
-        </View>
-      </Animated.ScrollView>
-    </LinearGradient>
+          }}
+        >
+          <Text style={styles.retryButtonText}>Réessayer</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // 3. Affichage normal du profil (après chargement réussi)
+  return (
+    <ProfileScreen
+      email={tempUserInfo.email}
+      name={tempUserInfo.name}
+      phone={tempUserInfo.phone}
+      image={tempUserInfo.photoURL}
+      // Ajoutez ici toutes les props nécessaires à ProfileScreen
+    />
   );
 }
 
+// --- Styles pour le chargement et l'erreur ---
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  scrollContainer: {
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 60,
-    paddingBottom: 50,
-    paddingHorizontal: 20,
+    backgroundColor: '#fff', // Un fond neutre pour le chargement
   },
-  avatarWrapper: { position: 'relative', marginBottom: 15 },
-  avatar: {
-    width: AVATAR_SIZE,
-    height: AVATAR_SIZE,
-    borderRadius: AVATAR_SIZE / 2,
-    borderWidth: 3,
-    borderColor: '#EC4899',
-  },
-  editButton: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: '#FFFFFF',
-    padding: 8,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#EC4899',
-  },
-  name: { fontSize: 24, fontWeight: '700', color: '#EC4899', marginTop: 5 },
-  role: { fontSize: 14, color: '#EC4899', marginBottom: 25 },
-  cardsWrapper: {
-    width: '100%',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 30,
-  },
-  card: {
-    width: (width - 60) / 2,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 15,
-    padding: 15,
-    marginBottom: 15,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
-  },
-  cardLabel: { fontSize: 12, color: '#9CA3AF', marginBottom: 5 },
-  cardValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    textAlign: 'center',
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 12,
-    paddingHorizontal: 25,
-    borderRadius: 30,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#EC4899',
+  loadingText: {
     marginTop: 10,
-  },
-  logoutText: {
-    color: '#EC4899',
-    fontWeight: '600',
-    marginLeft: 10,
     fontSize: 16,
+    color: '#666',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#f8d7da', // Fond clair pour l'erreur
+  },
+  errorText: {
+    fontSize: 18,
+    textAlign: 'center',
+    color: '#721c24',
+    marginBottom: 20,
+    fontWeight: '600',
+  },
+  retryButton: {
+    backgroundColor: PRIMARY_COLOR,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

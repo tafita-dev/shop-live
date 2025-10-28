@@ -123,7 +123,7 @@ export default function ProductList() {
           loading ? (
             <ActivityIndicator
               size="small"
-              color="#EC4899"
+              color="#fff"
               style={{ margin: 15 }}
             />
           ) : null

@@ -55,7 +55,7 @@ export default function OrdersScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#6A00F4" />
+        <ActivityIndicator size="large" color="#fff" />
       </View>
     );
   }

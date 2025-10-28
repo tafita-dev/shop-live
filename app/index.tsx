@@ -46,7 +46,7 @@ export default function Index() {
 
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" color="#EC4899" />
+      <ActivityIndicator size="large" color="#fff" />
       <Text style={styles.text}>Chargement...</Text>
     </View>
   );

@@ -78,6 +78,41 @@ export class CategorieClass {
     }
   };
 
+  static getCategoriesByvendor = async (
+    userId: string,
+  ): Promise<Categorie[]> => {
+    try {
+      const q = query(
+        collection(db, 'categories'),
+        where('vendorId', '==', userId), // filtrer par userId
+        orderBy('createdAt', 'desc'), // ordre par date
+      );
+
+      const querySnapshot = await getDocs(q);
+      const categories: Categorie[] = [];
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        categories.push({
+          id: doc.id,
+          name: data.name,
+          description: data.description,
+          image: data.image,
+          createdAt:
+            data.createdAt && data.createdAt.toDate
+              ? data.createdAt.toDate().toLocaleString()
+              : '',
+          vendorId: data.vendorId || '', // corrige le champ userConneted
+        });
+      });
+
+      return categories;
+    } catch (error) {
+      console.error('Erreur récupération catégories:', error);
+      return [];
+    }
+  };
+
   // ✅ Supprimer une catégorie par ID
   static deleteCategorie = async (id: string) => {
     try {

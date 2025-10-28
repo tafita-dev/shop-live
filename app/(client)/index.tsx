@@ -18,23 +18,76 @@ import {
   orderBy,
   Timestamp,
 } from 'firebase/firestore';
-import { useNavigation } from '@react-navigation/native';
 import { db } from '@/firebase/config';
 import { Live } from '@/types/live';
-import { Eye, Calendar, User } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Eye, Calendar, User, Clock } from 'lucide-react-native';
 import { router } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web';
-const cardWidth = isWeb ? Math.min(400, width - 40) : width - 20;
+// Utiliser 100% de la largeur du conteneur pour un affichage en liste vertical moderne
+const cardWidth = isWeb ? Math.min(600, width - 40) : width - 40;
+
+// Couleurs clés (Thème)
+const COLORS = {
+  PRIMARY: '#EC4899', // Rose Vif
+  REPLAY: '#64748b', // Gris Bleu (pour Rediffusion)
+  UPCOMING: '#10b981', // Vert Vif (pour À venir)
+  BACKGROUND: '#f8fafc', // Fond Clair (Gris très léger)
+  TEXT_DARK: '#1a1a1a',
+  TEXT_LIGHT: '#666',
+};
+
+// --- LOGIQUE DE STATUT ---
+type LiveStatus = 'LIVE' | 'REPLAY' | 'UPCOMING';
+
+/**
+ * Détermine le statut du live en se basant sur la date et le statut actif.
+ * @param item L'objet Live
+ * @returns Le statut du live: 'LIVE', 'REPLAY', ou 'UPCOMING'.
+ */
+const getLiveStatus = (item: Live): LiveStatus => {
+  // 1. Priorité: Si 'isActive' est vrai, c'est LIVE.
+  if (item.isActive) {
+    return 'LIVE';
+  }
+
+  // 2. Vérification de la date: Si non actif, comparer la date de l'événement.
+  let liveDate: Date;
+
+  if (item.createdAt instanceof Date) {
+    liveDate = item.createdAt;
+  } else if (item.createdAt) {
+    // Tentative de créer une date à partir de la valeur si elle existe
+    liveDate = new Date(item.createdAt);
+  } else {
+    // Si la date est invalide/manquante, le considérer comme terminé/rediffusion par défaut.
+    return 'REPLAY';
+  }
+
+  const now = new Date();
+
+  // Si la date est dans le futur, c'est 'UPCOMING' (À VENIR)
+  if (liveDate > now) {
+    return 'UPCOMING';
+  }
+
+  // Si non actif ET date passée, c'est 'REPLAY' (REDIFFUSION)
+  return 'REPLAY';
+};
+// -------------------------
 
 export default function HomeScreen() {
   const [lives, setLives] = useState<Live[]>([]);
   const [loading, setLoading] = useState(true);
-  const navigation = useNavigation<any>();
+
+  // Cette dépendance permet de s'assurer que les lives basculent de 'À VENIR' à 'REDIFFUSION'
+  // si leur date de début est dépassée, sans redémarrage de l'application.
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
+    // Écouteur en temps réel sur la collection 'lives'
     const q = query(collection(db, 'lives'), orderBy('createdAt', 'desc'));
 
     const unsubscribe = onSnapshot(
@@ -42,20 +95,22 @@ export default function HomeScreen() {
       (snapshot) => {
         const liveList: Live[] = snapshot.docs.map((doc) => {
           const data = doc.data();
+          const createdAt =
+            data.createdAt instanceof Timestamp
+              ? data.createdAt.toDate()
+              : new Date(); // Date par défaut si non valide
+
           return {
             objectId: doc.id,
             id: doc.id,
             profile: data.profile || '',
-            title: data.title || '',
-            createdAt:
-              data.createdAt instanceof Timestamp
-                ? data.createdAt.toDate()
-                : new Date(),
+            title: data.title || 'Live sans titre',
+            createdAt,
             facebookIframeUrl: data.facebookIframeUrl || '',
             isActive: data.isActive ?? false,
             vendorId: data.vendorId || '',
-            vendorName: data.vendorName || '',
-          };
+            vendorName: data.vendorName || 'Vendeur Inconnu',
+          } as Live;
         });
 
         setLives(liveList);
@@ -67,12 +122,22 @@ export default function HomeScreen() {
       },
     );
 
-    return () => unsubscribe();
+    // Mettre à jour l'heure actuelle toutes les minutes
+    const intervalId = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // 1 minute
+
+    return () => {
+      unsubscribe();
+      clearInterval(intervalId);
+    };
   }, []);
 
+  /** Formate une date en chaîne lisible en français. */
   function formatDate(date: any): string {
     const jsDate =
       date instanceof Timestamp ? date.toDate() : new Date(date ?? Date.now());
+
     return jsDate.toLocaleString('fr-FR', {
       day: '2-digit',
       month: 'long',
@@ -82,151 +147,185 @@ export default function HomeScreen() {
     });
   }
 
-  const renderItem: ListRenderItem<Live> = ({ item }) => (
-    <View style={[styles.card, { width: cardWidth }]}>
-      <View style={styles.imageContainer}>
-        <Image
-          source={{
-            uri:
-              item.profile ||
-              'https://images.pexels.com/photos/1190298/pexels-photo-1190298.jpeg?auto=compress&cs=tinysrgb&w=800',
-          }}
-          style={styles.thumbnail}
-          resizeMode="cover"
-        />
+  const renderItem: ListRenderItem<Live> = ({ item }) => {
+    // Déterminer le statut et configurer l'interface
+    const status = getLiveStatus(item);
 
-        <View style={styles.overlay} />
+    let badgeStyle = styles.offlineBadge;
+    let badgeText = 'REDIFFUSION';
+    let buttonText = 'Revoir';
+    let buttonColor = COLORS.REPLAY;
+    let icon = <Calendar size={12} color="#fff" strokeWidth={2} />;
 
-        {item.isActive && (
-          <View style={styles.livePulseContainer}>
-            <View style={styles.livePulse} />
-            <View style={[styles.badge, styles.liveBadge]}>
-              <View style={styles.liveDot} />
-              <Text style={styles.badgeText}>EN DIRECT</Text>
+    if (status === 'LIVE') {
+      badgeStyle = styles.liveBadge;
+      badgeText = 'EN DIRECT';
+      buttonText = 'Rejoindre';
+      buttonColor = COLORS.PRIMARY;
+      icon = <Eye size={16} color="white" strokeWidth={2} />; // Icône 'Eye' pour l'action Live
+    } else if (status === 'UPCOMING') {
+      badgeStyle = styles.upcomingBadge;
+      badgeText = 'À VENIR';
+      buttonText = 'Notifier';
+      buttonColor = COLORS.UPCOMING;
+      icon = <Clock size={12} color="#fff" strokeWidth={2} />;
+    }
+
+    const showLivePulse = status === 'LIVE';
+
+    return (
+      <View style={[styles.card, { width: cardWidth }]}>
+        <View style={styles.imageContainer}>
+          <Image
+            source={{
+              uri:
+                item.profile ||
+                'https://via.placeholder.com/600x400?text=Live+Image',
+            }}
+            style={styles.thumbnail}
+            resizeMode="cover"
+          />
+
+          <View style={styles.overlay} />
+
+          {/* Badge de statut */}
+          <View
+            style={[
+              styles.badgeContainer,
+              showLivePulse && styles.livePulseContainer,
+            ]}
+          >
+            {showLivePulse && <View style={styles.livePulse} />}
+            <View style={[styles.badge, badgeStyle]}>
+              {status === 'LIVE' && <View style={styles.liveDot} />}
+              <Text style={styles.badgeText}>{badgeText}</Text>
             </View>
           </View>
-        )}
 
-        {!item.isActive && (
-          <View style={[styles.badge, styles.offlineBadge]}>
-            <Text style={styles.badgeText}>Terminé</Text>
+          {/* Date de l'événement */}
+          <View style={styles.dateContainer}>
+            {/* L'icône change en fonction du statut (Calendar, Clock, Eye) */}
+            {icon}
+            <Text style={styles.dateText}>{formatDate(item.createdAt)}</Text>
           </View>
-        )}
-
-        <View style={styles.dateContainer}>
-          <Calendar size={12} color="#fff" strokeWidth={2} />
-          <Text style={styles.dateText}>
-            {item.createdAt ? formatDate(item.createdAt) : ''}
-          </Text>
         </View>
-      </View>
 
-      <View style={styles.info}>
-        <View style={styles.textContainer}>
-          <Text style={styles.title} numberOfLines={2}>
-            {item.title}
-          </Text>
-
-          <View style={styles.vendorContainer}>
-            <User size={14} color="#666" strokeWidth={2} />
-            <Text style={styles.vendor} numberOfLines={1}>
-              {item.vendorName}
+        <View style={styles.info}>
+          <View style={styles.textContainer}>
+            <Text style={styles.title} numberOfLines={2}>
+              {item.title}
             </Text>
-          </View>
-        </View>
 
-        <TouchableOpacity
-          onPress={() =>
-            router.replace(
-              `/(live)/livedetails?id=${item.vendorId}&link=${item.facebookIframeUrl}`,
-            )
-          }
-          style={[styles.button, !item.isActive && styles.buttonInactive]}
-          activeOpacity={0.8}
-        >
-          <Eye size={16} color="white" strokeWidth={2} />
-          <Text style={styles.buttonText}>
-            {item.isActive ? 'Rejoindre' : 'Revoir'}
-          </Text>
-        </TouchableOpacity>
+            <View style={styles.vendorContainer}>
+              <User size={14} color={COLORS.TEXT_LIGHT} strokeWidth={2} />
+              <Text style={styles.vendor} numberOfLines={1}>
+                {item.vendorName}
+              </Text>
+            </View>
+          </View>
+
+          {/* Bouton d'action */}
+          <TouchableOpacity
+            onPress={() =>
+              router.push(
+                `/(live)/livedetails?id=${item.vendorId}&link=${item.facebookIframeUrl}`,
+              )
+            }
+            style={[
+              styles.button,
+              { backgroundColor: buttonColor, shadowColor: buttonColor },
+            ]}
+            activeOpacity={0.8}
+          >
+            <Eye size={16} color="white" strokeWidth={2} />
+            <Text style={styles.buttonText}>{buttonText}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <Text style={styles.emptyText}>Aucun live disponible</Text>
+      <Text style={styles.emptyText}>Aucun live trouvé</Text>
       <Text style={styles.emptySubtext}>
-        Les nouveaux lives apparaîtront ici
+        Les nouveaux événements en direct ou les rediffusions apparaîtront ici.
       </Text>
     </View>
   );
 
+  // Écran de chargement
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4267B2" />
-        <Text style={styles.loadingText}>Chargement des lives...</Text>
+        <ActivityIndicator size="large" color={COLORS.PRIMARY} />
+        <Text style={styles.loadingText}>Chargement des événements...</Text>
       </View>
     );
   }
 
+  // Rendu principal
   return (
     <LinearGradient colors={['#FFF', '#F3F4F6']} style={styles.drawerContainer}>
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Lives</Text>
-          <View style={styles.liveCountBadge}>
-            <View style={styles.liveCountDot} />
-            <Text style={styles.liveCountText}>
-              {lives.filter((l) => l.isActive).length} en direct
-            </Text>
+      <View style={{ flex: 1, backgroundColor: COLORS.BACKGROUND }}>
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Événements en direct</Text>
+            <View style={styles.liveCountBadge}>
+              <View style={styles.liveCountDot} />
+              <Text style={styles.liveCountText}>
+                {lives.filter((l) => getLiveStatus(l) === 'LIVE').length} en
+                direct
+              </Text>
+            </View>
           </View>
-        </View>
 
-        <FlatList
-          data={lives}
-          keyExtractor={(item) => item.id ?? item.vendorId}
-          renderItem={renderItem}
-          contentContainerStyle={[
-            styles.listContent,
-            lives.length === 0 && styles.listContentEmpty,
-          ]}
-          ListEmptyComponent={renderEmpty}
-          showsVerticalScrollIndicator={false}
-          initialNumToRender={5}
-          maxToRenderPerBatch={10}
-          windowSize={10}
-        />
+          <FlatList
+            data={lives}
+            keyExtractor={(item) => item.id ?? item.vendorId}
+            renderItem={renderItem}
+            contentContainerStyle={[
+              styles.listContent,
+              lives.length === 0 && styles.listContentEmpty,
+            ]}
+            ListEmptyComponent={renderEmpty}
+            showsVerticalScrollIndicator={false}
+            initialNumToRender={5}
+            maxToRenderPerBatch={10}
+            windowSize={10}
+          />
+        </View>
       </View>
     </LinearGradient>
   );
 }
 
+// --- STYLES ---
 const styles = StyleSheet.create({
-  drawerContainer: {
-    flex: 1,
-    paddingBottom: 40,
-  },
   container: {
     flex: 1,
-    backgroundColor: '#f5f7fa',
+    backgroundColor: COLORS.BACKGROUND,
+  },
+  drawerContainer: {
+    flex: 1,
+
+    paddingBottom: 40,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingTop: Platform.OS === 'ios' ? 50 : 20, // Ajustement pour l'entête sur iOS
     paddingBottom: 16,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e1e4e8',
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 18,
     fontWeight: '700',
-    color: '#1a1a1a',
+    color: COLORS.TEXT_DARK,
   },
   liveCountBadge: {
     flexDirection: 'row',
@@ -240,32 +339,31 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#EC4899',
+    backgroundColor: COLORS.PRIMARY,
     marginRight: 6,
   },
   liveCountText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#EC4899',
+    color: COLORS.PRIMARY,
   },
   listContent: {
     paddingVertical: 16,
-    alignItems: 'center',
+    paddingHorizontal: 20,
   },
   listContentEmpty: {
     flexGrow: 1,
   },
   card: {
     marginVertical: 10,
-    marginHorizontal: 10,
     borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: '#fff',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
   },
   imageContainer: {
     position: 'relative',
@@ -283,7 +381,12 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.15)',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  badgeContainer: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
   },
   livePulseContainer: {
     position: 'absolute',
@@ -292,14 +395,14 @@ const styles = StyleSheet.create({
   },
   livePulse: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#EC4899',
+    width: 40,
+    height: 25,
+    backgroundColor: COLORS.PRIMARY,
     borderRadius: 20,
     opacity: 0.3,
-    transform: [{ scale: 1.3 }],
+    transform: [{ scale: 1.5 }],
+    top: -3,
+    left: -3,
   },
   badge: {
     flexDirection: 'row',
@@ -307,20 +410,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
+    zIndex: 10,
   },
   liveBadge: {
-    backgroundColor: '#EC4899',
-    shadowColor: '#EC4899',
+    backgroundColor: COLORS.PRIMARY,
+    shadowColor: COLORS.PRIMARY,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
     elevation: 6,
   },
+  upcomingBadge: {
+    backgroundColor: COLORS.UPCOMING, // Vert pour À VENIR
+  },
   offlineBadge: {
-    position: 'absolute',
-    top: 16,
-    left: 16,
-    backgroundColor: 'rgba(107, 114, 128, 0.9)',
+    backgroundColor: COLORS.REPLAY, // Gris pour REDIFFUSION
   },
   liveDot: {
     width: 6,
@@ -339,10 +443,10 @@ const styles = StyleSheet.create({
   dateContainer: {
     position: 'absolute',
     bottom: 12,
-    left: 12,
+    right: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 12,
@@ -366,9 +470,9 @@ const styles = StyleSheet.create({
   },
   title: {
     fontWeight: '700',
-    fontSize: 17,
-    color: '#1a1a1a',
-    lineHeight: 22,
+    fontSize: 18,
+    color: COLORS.TEXT_DARK,
+    lineHeight: 24,
   },
   vendorContainer: {
     flexDirection: 'row',
@@ -378,26 +482,20 @@ const styles = StyleSheet.create({
   },
   vendor: {
     fontSize: 14,
-    color: '#666',
+    color: COLORS.TEXT_LIGHT,
     fontWeight: '500',
   },
   button: {
-    backgroundColor: '#EC4899',
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    shadowColor: '#EC4899',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
-  },
-  buttonInactive: {
-    backgroundColor: '#64748b',
-    shadowColor: '#64748b',
   },
   buttonText: {
     color: 'white',
@@ -408,12 +506,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f7fa',
+    backgroundColor: COLORS.BACKGROUND,
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#666',
+    color: COLORS.TEXT_LIGHT,
     fontWeight: '500',
   },
   emptyContainer: {
@@ -426,12 +524,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1a1a1a',
+    color: COLORS.TEXT_DARK,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 15,
-    color: '#666',
+    color: COLORS.TEXT_LIGHT,
     textAlign: 'center',
   },
 });

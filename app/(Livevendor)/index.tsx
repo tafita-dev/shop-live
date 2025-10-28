@@ -48,7 +48,7 @@ const BORDER_COLOR = '#D1D1D6'; // Lignes de séparation fines
 // --- Définition des Étapes ---
 type LiveCreationStep = 1 | 2; // 1: Détails | 2: Produits
 
-export default function CreateLive() {
+export default function Home() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<LiveCreationStep>(1);
 
@@ -272,7 +272,7 @@ export default function CreateLive() {
                   : styles.categoryTextInactive,
               ]}
             >
-              {categoryName}
+              {categoryName || ''}
             </Text>
           </TouchableOpacity>
         );
@@ -306,7 +306,7 @@ export default function CreateLive() {
 
         <View style={styles.productInfo}>
           <Text style={styles.productName} numberOfLines={1}>
-            {item.title}
+            {item.title || ''}
           </Text>
           <Text style={styles.productPrice}>
             {item.price
@@ -334,7 +334,7 @@ export default function CreateLive() {
   // --- Rendu UI Principal ---
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }}>
+    <>
       <View style={styles.container}>
         {/* Header (Minimaliste) */}
         <View style={styles.header}>
@@ -546,7 +546,7 @@ export default function CreateLive() {
           </TouchableOpacity>
         </View>
       </View>
-    </SafeAreaView>
+    </>
   );
 }
 
