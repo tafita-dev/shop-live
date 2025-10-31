@@ -42,7 +42,8 @@ export default function VendorLayout() {
     authProviders: { emailPassword: false, facebookId: '', googleId: '' },
     createdAt: '',
     phone: '',
-    photoURL: '',
+    photoURL:
+      'https://res.cloudinary.com/dfywekuna/image/upload/v1736843708/20171206_01_jx8oyo.jpg',
   });
 
   const openModal = () => {
@@ -105,6 +106,7 @@ export default function VendorLayout() {
 
   const loadUserData = async () => {
     const data = await fetchFirebaseUserInfo();
+    console.log(data);
     if (data) {
       setUserInfo({
         name: data.name,
@@ -146,7 +148,9 @@ export default function VendorLayout() {
         <View style={styles.profileSection}>
           <Image
             source={{
-              uri: userInfo.photoURL || 'https://i.pravatar.cc/150?img=3',
+              uri:
+                userInfo.photoURL ||
+                'https://res.cloudinary.com/dfywekuna/image/upload/v1736843708/20171206_01_jx8oyo.jpg',
             }}
             style={styles.avatar}
           />

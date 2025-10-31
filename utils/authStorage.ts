@@ -72,7 +72,8 @@ export const fetchFirebaseUserInfo = async () => {
   const userSnap = await getDoc(userDocRef);
 
   let name = 'Utilisateur';
-  let photoURL = 'https://i.pravatar.cc/150';
+  let photoURL =
+    'https://res.cloudinary.com/dfywekuna/image/upload/v1736843708/20171206_01_jx8oyo.jpg';
   let email = '';
   let role = 'client';
   let phone = '';
@@ -81,7 +82,7 @@ export const fetchFirebaseUserInfo = async () => {
     const data = userSnap.data();
 
     name = data.name || name;
-    photoURL = data.profile || photoURL;
+    photoURL = data.photoURL || photoURL;
     email = data.email || email;
     role = data.role || role;
     phone = data.phone || phone;

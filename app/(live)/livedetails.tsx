@@ -7,12 +7,24 @@ import {
   TouchableOpacity,
   Platform,
   ScrollView,
+  Alert,
+  Modal,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { ArrowLeft, ShoppingCart } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ProductGroupList } from '@/components/ProductGroupList';
+import { useEffect, useState } from 'react';
+import {
+  addToCart,
+  clearCartByVendor,
+  getCartCountByVendor,
+} from '@/utils/cartStorage';
+import { useCart } from '@/components/contexts/CartContext';
+import OrderScreen from '@/components/orderScreen';
+import { Ionicons } from '@expo/vector-icons';
+import OrderModal from '@/components/orderModal';
 
 const { height, width } = Dimensions.get('window');
 
@@ -26,10 +38,12 @@ export default function DetailsScreen() {
 
   const link = params.link ?? 'Aucun lien';
   const vendorId = params.id ?? '';
-  const status = params.status ?? 'REPLAY';
+  const status = params.status;
+  const { cartCount, refreshCart } = useCart();
+  const [visible, setVisible] = useState(false);
 
   const iframeHeight = Math.min(height * 0.32, 320);
-  const headerTitle = status === 'LIVE' ? '🟢 Live en cours' : '🎬 Rediffusion';
+  const headerTitle = status ? '🟢 Live en cours' : '🎬 Rediffusion';
 
   const html = `
     <!DOCTYPE html>
@@ -54,52 +68,67 @@ export default function DetailsScreen() {
     </html>
   `;
 
+  useEffect(() => {
+    if (vendorId) {
+      refreshCart(vendorId);
+    }
+  }, [vendorId]);
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      {/* En-tête dégradé moderne */}
-      <LinearGradient
-        colors={['#fce7f3', '#fff']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.header}
-      >
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.replace('/(client)')}
+    <>
+      <OrderModal setVisible={setVisible} visible={visible} />
+      <SafeAreaView style={styles.safeArea}>
+        {/* En-tête dégradé moderne */}
+        <LinearGradient
+          colors={['#fce7f3', '#fff']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.header}
         >
-          <ArrowLeft color="#EC4899" size={22} />
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => {
+              router.replace('/(client)');
+              clearCartByVendor(vendorId);
+            }}
+          >
+            <ArrowLeft color="#EC4899" size={22} />
+          </TouchableOpacity>
 
-        <Text style={styles.title}>{headerTitle}</Text>
+          <Text style={styles.title}>{headerTitle}</Text>
 
-        <TouchableOpacity style={styles.cartButton}>
-          <ShoppingCart size={22} color="#EC4899" />
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>3</Text>
+          <TouchableOpacity
+            onPress={() => setVisible(true)}
+            style={styles.cartButton}
+          >
+            <ShoppingCart size={22} color="#EC4899" />
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{cartCount}</Text>
+            </View>
+          </TouchableOpacity>
+        </LinearGradient>
+
+        <ScrollView
+          style={styles.container}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 50 }}
+        >
+          {/* Vidéo */}
+          <View style={[styles.webviewContainer, { height: iframeHeight }]}>
+            <WebView
+              originWhitelist={['*']}
+              source={{ html }}
+              style={styles.webview}
+              javaScriptEnabled
+              domStorageEnabled
+              startInLoadingState
+            />
           </View>
-        </TouchableOpacity>
-      </LinearGradient>
 
-      <ScrollView
-        style={styles.container}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 50 }}
-      >
-        {/* Vidéo */}
-        <View style={[styles.webviewContainer, { height: iframeHeight }]}>
-          <WebView
-            originWhitelist={['*']}
-            source={{ html }}
-            style={styles.webview}
-            javaScriptEnabled
-            domStorageEnabled
-            startInLoadingState
-          />
-        </View>
-
-        <ProductGroupList vendorId={vendorId} />
-      </ScrollView>
-    </SafeAreaView>
+          <ProductGroupList vendorId={vendorId} />
+        </ScrollView>
+      </SafeAreaView>
+    </>
   );
 }
 
@@ -134,6 +163,30 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     textAlign: 'center',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  headerModal: {
+    backgroundColor: '#ec4899',
+    paddingTop: 50,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginLeft: 10,
+  },
+  content: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
   },
   cartButton: {
     position: 'relative',

@@ -11,9 +11,13 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import Modal from 'react-native-modal';
+import { Eye, ShoppingCart } from 'lucide-react-native';
+import { addToCart } from '@/utils/cartStorage';
+import { useCart } from './contexts/CartContext';
 
 type interfaceProps = {
   vendorId: string;
@@ -26,6 +30,7 @@ export const ProductGroupList: React.FC<interfaceProps> = ({ vendorId }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const { refreshCart } = useCart();
 
   const fetchCategories = async () => {
     const res = await CategorieClass.getCategoriesByvendor(vendorId);
@@ -71,7 +76,7 @@ export const ProductGroupList: React.FC<interfaceProps> = ({ vendorId }) => {
           source={{
             uri:
               cat?.image ??
-              'https://res.cloudinary.com/dfywekuna/image/upload/v1761047036/yq0r7kuejok0k9mgchnb.jpg',
+              'https://res.cloudinary.com/dfywekuna/image/upload/v1761829682/bq4q3bfkaomjft08oyit.jpg',
           }}
           style={styles.categoryImage}
         />
@@ -85,6 +90,12 @@ export const ProductGroupList: React.FC<interfaceProps> = ({ vendorId }) => {
   const openModal = (product: Product) => {
     setSelectedProduct(product);
     setModalVisible(true);
+  };
+
+  const handleAddToCart = async (product: Product) => {
+    await addToCart(vendorId, product);
+    await refreshCart(vendorId);
+    Alert.alert('Info', `Produit ${product.title} ajouté au panier 🛒`);
   };
 
   const renderProduct = (product: Product) => (
@@ -101,14 +112,14 @@ export const ProductGroupList: React.FC<interfaceProps> = ({ vendorId }) => {
           style={styles.detailButton}
           onPress={() => openModal(product)}
         >
-          <Text style={styles.detailText}>Voir détail</Text>
+          <Eye color="#fff" size={18} />
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.cartButton}
-          onPress={() => console.log('Ajouter au panier :', product.id)}
+          onPress={() => handleAddToCart(product)}
         >
-          <FontAwesome name="shopping-cart" size={18} color="#fff" />
+          <ShoppingCart size={18} color="#fff" />
         </TouchableOpacity>
       </View>
     </View>
@@ -211,11 +222,11 @@ const styles = StyleSheet.create({
   },
   selectedCard: {
     borderWidth: 1.5,
-    borderColor: '#007bff',
+    borderColor: '#EC4899',
   },
   categoryImage: { width: 50, height: 50, borderRadius: 25, marginBottom: 5 },
   categoryName: { fontSize: 13, fontWeight: '600', color: '#333' },
-  selectedText: { color: '#007bff' },
+  selectedText: { color: '#EC4899' },
 
   productList: {
     paddingHorizontal: 10,
@@ -244,7 +255,7 @@ const styles = StyleSheet.create({
   productPrice: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#007bff',
+    color: '#EC4899',
     marginTop: 5,
   },
   cardFooter: {
@@ -253,13 +264,13 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   detailButton: {
-    backgroundColor: '#007bff',
+    backgroundColor: '#010911ff',
     paddingVertical: 5,
     paddingHorizontal: 10,
     borderRadius: 6,
   },
   detailText: { color: '#fff', fontSize: 12, fontWeight: '600' },
-  cartButton: { backgroundColor: '#28a745', padding: 6, borderRadius: 6 },
+  cartButton: { backgroundColor: '#EC4899', padding: 6, borderRadius: 6 },
 
   modalContent: {
     backgroundColor: '#fff',
@@ -282,7 +293,7 @@ const styles = StyleSheet.create({
   modalCode: { fontSize: 14, color: '#666', marginBottom: 4 },
   modalPrice: {
     fontSize: 16,
-    color: '#007bff',
+    color: '#EC4899',
     fontWeight: 'bold',
     marginBottom: 10,
   },
@@ -293,7 +304,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   closeButton: {
-    backgroundColor: '#007bff',
+    backgroundColor: '#EC4899',
     paddingVertical: 10,
     borderRadius: 10,
     width: '60%',

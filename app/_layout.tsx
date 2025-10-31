@@ -10,6 +10,7 @@ import {
   Button,
   StyleSheet,
 } from 'react-native';
+import { CartProvider } from '@/components/contexts/CartContext';
 
 // Empêche la fermeture automatique du splash screen
 SplashScreen.preventAutoHideAsync();
@@ -90,15 +91,18 @@ export default function RootLayout() {
   return (
     // L'ajout de l'ErrorBoundary rend l'application plus résiliente
     <ErrorBoundary>
-      <Stack screenOptions={{ headerShown: false }}>
-        {/* ⚡️ Structure des routes principales */}
-        <Stack.Screen name="index" />
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(client)" />
-        <Stack.Screen name="(vendor)" />
-        <Stack.Screen name="(livevendor)" />
-        <Stack.Screen name="+not-found" />
-      </Stack>
+      <CartProvider>
+        <Stack screenOptions={{ headerShown: false }}>
+          {/* ⚡️ Structure des routes principales */}
+          <Stack.Screen name="index" />
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(client)" />
+          <Stack.Screen name="(vendor)" />
+          <Stack.Screen name="(order)" />
+          <Stack.Screen name="(livevendor)" />
+          <Stack.Screen name="+not-found" />
+        </Stack>
+      </CartProvider>
       {/* Utiliser 'auto' pour que la couleur de la barre d'état s'adapte au fond de l'écran actuel */}
       <StatusBar style="auto" />
     </ErrorBoundary>

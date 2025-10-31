@@ -6,6 +6,7 @@ import {
   query,
   where,
   getDocs,
+  updateDoc,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { User } from '@/types/user';
@@ -28,6 +29,18 @@ export class UserClass {
       };
     }
   };
+
+  static async UpdateProfile(downloadURL: string, uid: string) {
+    try {
+      const userRef = doc(db, 'users', uid);
+      await updateDoc(userRef, { photoURL: downloadURL });
+      console.log('✅ Photo de profil mise à jour pour', uid);
+      return true; // tu peux retourner true pour indiquer le succès
+    } catch (error) {
+      console.error('❌ Erreur UpdateProfile:', error);
+      return false; // échec
+    }
+  }
 
   static async getUserByFacebookId(facebookId: string) {
     const usersRef = collection(db, 'users');

@@ -72,6 +72,7 @@ export default function Profile() {
             role,
             phone: data.phone || initialUserInfo.phone,
           };
+          console.log(loadedInfo, 'hjghghj');
 
           setUserInfo(loadedInfo);
           setTempUserInfo(loadedInfo); // Initialiser l'état temporaire avec les données chargées

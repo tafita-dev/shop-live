@@ -20,7 +20,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { Live } from '@/types/live';
-import { Eye, Calendar, User, Clock } from 'lucide-react-native';
+import { Eye, Calendar, User, Clock, Play } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -174,19 +174,29 @@ export default function HomeScreen() {
     const showLivePulse = status === 'LIVE';
 
     return (
-      <View style={[styles.card, { width: cardWidth }]}>
+      <TouchableOpacity
+        onPress={() =>
+          router.push(
+            `/(live)/livedetails?id=${item.vendorId}&link=${item.facebookIframeUrl}&status=${item.isActive}`,
+          )
+        }
+        style={[styles.card, { width: cardWidth }]}
+      >
         <View style={styles.imageContainer}>
           <Image
             source={{
               uri:
                 item.profile ||
-                'https://via.placeholder.com/600x400?text=Live+Image',
+                'https://res.cloudinary.com/dfywekuna/image/upload/v1761829682/bq4q3bfkaomjft08oyit.jpg',
             }}
             style={styles.thumbnail}
             resizeMode="cover"
           />
 
           <View style={styles.overlay} />
+          <View style={styles.playIconContainer}>
+            <Play size={48} color="#fff" strokeWidth={2.5} />
+          </View>
 
           {/* Badge de statut */}
           <View
@@ -200,13 +210,6 @@ export default function HomeScreen() {
               {status === 'LIVE' && <View style={styles.liveDot} />}
               <Text style={styles.badgeText}>{badgeText}</Text>
             </View>
-          </View>
-
-          {/* Date de l'événement */}
-          <View style={styles.dateContainer}>
-            {/* L'icône change en fonction du statut (Calendar, Clock, Eye) */}
-            {icon}
-            <Text style={styles.dateText}>{formatDate(item.createdAt)}</Text>
           </View>
         </View>
 
@@ -224,24 +227,15 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          {/* Bouton d'action */}
-          <TouchableOpacity
-            onPress={() =>
-              router.push(
-                `/(live)/livedetails?id=${item.vendorId}&link=${item.facebookIframeUrl}`,
-              )
-            }
-            style={[
-              styles.button,
-              { backgroundColor: buttonColor, shadowColor: buttonColor },
-            ]}
-            activeOpacity={0.8}
-          >
-            <Eye size={16} color="white" strokeWidth={2} />
-            <Text style={styles.buttonText}>{buttonText}</Text>
-          </TouchableOpacity>
+          {/* Date de l'événement */}
+
+          <View style={styles.dateContainer}>
+            {/* L'icône change en fonction du statut (Calendar, Clock, Eye) */}
+            {icon}
+            <Text style={styles.dateText}>{formatDate(item.createdAt)}</Text>
+          </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -306,6 +300,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.BACKGROUND,
   },
+  playIconContainer: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -24 }, { translateY: -24 }],
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderRadius: 40,
+    padding: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
   drawerContainer: {
     flex: 1,
 

@@ -13,6 +13,10 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { FontAwesome, MaterialIcons, Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import uploadImageToCloudinary from '@/app/api/uploadFile';
+import Spinner from 'react-native-loading-spinner-overlay';
+import { UserClass } from '@/users/user';
+import { authStorage } from '@/utils/authStorage';
 
 interface ProfileScreenProps {
   onEdit?: () => void;
@@ -34,14 +38,28 @@ export default function ProfileScreen({
   const [activeTab, setActiveTab] = useState<'info' | 'geo'>('info');
   const [profileImage, setProfileImage] = useState(image);
   const [modalVisible, setModalVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const pickImageFromGallery = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 1,
     });
-    if (!result.canceled) setProfileImage(result.assets[0].uri);
-    setModalVisible(false);
+    if (!result.canceled) {
+      setLoading(true);
+      const uid = await authStorage.getUserId();
+      const resultUpload = await uploadImageToCloudinary(result.assets[0].uri);
+
+      if (resultUpload && uid) {
+        const isupate = await UserClass.UpdateProfile(resultUpload, uid);
+        console.log(resultUpload, 'hjgjhhh', uid, isupate);
+        setLoading(false);
+        setProfileImage(result.assets[0].uri);
+        setModalVisible(false);
+      } else {
+        setLoading(false);
+      }
+    }
   };
 
   const takePhotoWithCamera = async () => {
@@ -49,13 +67,35 @@ export default function ProfileScreen({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 1,
     });
-    if (!result.canceled) setProfileImage(result.assets[0].uri);
-    setModalVisible(false);
+    if (!result.canceled) {
+      setLoading(true);
+      const uid = await authStorage.getUserId();
+      const resultUpload = await uploadImageToCloudinary(result.assets[0].uri);
+      console.log(resultUpload, 'hjgjhhh');
+
+      if (resultUpload && uid) {
+        const isupate = await UserClass.UpdateProfile(resultUpload, uid);
+        console.log(resultUpload, 'hjgjhhh', uid, isupate);
+
+        setLoading(false);
+        setProfileImage(result.assets[0].uri);
+        setModalVisible(false);
+      } else {
+        setLoading(false);
+      }
+    }
   };
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Tabs en haut */}
+      <Spinner
+        visible={loading}
+        textContent={'Chargement photo de profile...'}
+        textStyle={{ color: '#fff' }}
+        overlayColor="rgba(0, 0, 0, 0.7)"
+      />
+
       <LinearGradient colors={['#fff', '#f9f9f9']} style={styles.bottomTabs}>
         <TouchableOpacity
           style={[
