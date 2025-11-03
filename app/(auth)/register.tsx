@@ -11,8 +11,6 @@ import {
   Dimensions,
   Image,
   Animated,
-  NativeSyntheticEvent,
-  TextInputChangeEventData,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Spinner from 'react-native-loading-spinner-overlay';
@@ -28,6 +26,14 @@ import { UserClass } from '@/users/user';
 
 const { width, height } = Dimensions.get('window');
 
+// Fonction pour valider le format de l'email
+const validateEmail = (email: string): boolean => {
+  const re =
+    /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+  return re.test(String(email).toLowerCase());
+};
+
+// --- INTERFACE POUR LES PROPRIÉTÉS DU CHAMP D'ENTRÉE ---
 interface InputFieldProps {
   icon: React.ReactNode;
   placeholder: string;
@@ -38,8 +44,10 @@ interface InputFieldProps {
   showToggle?: boolean;
   togglePress?: () => void;
   error?: string;
+  max?: number;
 }
 
+// --- COMPOSANT DE CHAMP D'ENTRÉE DYNAMIQUE (UI/UX AMÉLIORÉE) ---
 const InputField: React.FC<InputFieldProps> = ({
   icon,
   placeholder,
@@ -50,11 +58,14 @@ const InputField: React.FC<InputFieldProps> = ({
   showToggle,
   togglePress,
   error,
+  max,
 }) => {
   const shakeAnim = useRef(new Animated.Value(0)).current;
+  const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {
-    if (error) {
+    // Déclencher le shake si erreur et perte de focus
+    if (error && !isFocused) {
       Animated.sequence([
         Animated.timing(shakeAnim, {
           toValue: 10,
@@ -83,43 +94,67 @@ const InputField: React.FC<InputFieldProps> = ({
         }),
       ]).start();
     }
-  }, [error, shakeAnim]);
+  }, [error, shakeAnim, isFocused]);
+
+  // Détermination du style de bordure et de la couleur de l'icône
+  const borderColor = error ? '#EF4444' : isFocused ? '#EC4899' : '#E5E7EB';
+  const iconColor = error ? '#EF4444' : isFocused ? '#EC4899' : '#6B7280';
+  const borderWidth = isFocused || error ? 2 : 1;
+
+  // Cloner l'élément React pour injecter les props de couleur
+  const renderIcon = React.cloneElement(icon as any, {
+    size: 20,
+    color: iconColor,
+  });
 
   return (
-    <View style={{ marginBottom: error ? 0 : height * 0.015 }}>
+    <View style={{ marginBottom: error && !isFocused ? 0 : height * 0.015 }}>
       <Animated.View
         style={[
           styles.inputWrapper,
-          { transform: [{ translateX: shakeAnim }] },
+          {
+            transform: [{ translateX: shakeAnim }],
+            borderColor: borderColor,
+            borderWidth: borderWidth,
+          },
         ]}
       >
-        {icon}
+        {renderIcon}
         <TextInput
           placeholder={placeholder}
           style={styles.input}
           placeholderTextColor="#9CA3AF"
-          autoCapitalize="none"
+          autoCapitalize={
+            keyboardType === 'email-address' ? 'none' : 'sentences'
+          }
           secureTextEntry={secureTextEntry}
           value={value}
           onChangeText={onChangeText}
           keyboardType={keyboardType}
           selectionColor="#EC4899"
+          maxLength={max}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
         />
         {showToggle && togglePress && (
           <TouchableOpacity onPress={togglePress}>
             {secureTextEntry ? (
-              <Eye size={20} color="#6B7280" />
+              <Eye size={20} color={iconColor} />
             ) : (
-              <EyeOff size={20} color="#6B7280" />
+              <EyeOff size={20} color={iconColor} />
             )}
           </TouchableOpacity>
         )}
       </Animated.View>
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      {/* Affichage de l'erreur uniquement si le champ n'est pas focusé */}
+      {error && !isFocused ? (
+        <Text style={styles.errorText}>{error}</Text>
+      ) : null}
     </View>
   );
 };
 
+// --- COMPOSANT PRINCIPAL D'INSCRIPTION ---
 export default function Register(): JSX.Element {
   const router = useRouter();
   const [step, setStep] = useState<number>(1);
@@ -140,13 +175,13 @@ export default function Register(): JSX.Element {
 
   const [errors, setErrors] = useState<{
     username: string;
-    emailPhone: string;
+    email: string;
     password: string;
     confirmPassword: string;
     passwordMatch: string;
   }>({
     username: '',
-    emailPhone: '',
+    email: '',
     password: '',
     confirmPassword: '',
     passwordMatch: '',
@@ -165,36 +200,52 @@ export default function Register(): JSX.Element {
   const goToLogin = () => router.push('/(auth)/login');
 
   const handleNextStep = (): void => {
-    const newErrors = { username: '', emailPhone: '' };
+    const newErrors = { username: '', email: '' };
     let valid = true;
+
     if (!username.trim()) {
       newErrors.username = "Le nom d'utilisateur est obligatoire !";
       valid = false;
     }
+
     if (!email.trim()) {
-      newErrors.emailPhone = 'Veuillez saisir un email !';
+      newErrors.email = 'Veuillez saisir un email !';
+      valid = false;
+    } else if (!validateEmail(email)) {
+      newErrors.email = "Le format de l'email n'est pas valide.";
       valid = false;
     }
+
     setErrors((prev) => ({ ...prev, ...newErrors }));
+
     if (valid) setStep(2);
   };
 
   const handleConfirm = async (): Promise<void> => {
     const newErrors = { password: '', confirmPassword: '', passwordMatch: '' };
     let valid = true;
+
     if (!password.trim()) {
       newErrors.password = 'Le mot de passe est obligatoire !';
       valid = false;
+    } else if (password.length < 6) {
+      // Validation de la longueur
+      newErrors.password =
+        'Le mot de passe doit contenir au moins 6 caractères !';
+      valid = false;
     }
+
     if (!confirmPassword.trim()) {
       newErrors.confirmPassword =
         'La confirmation du mot de passe est obligatoire !';
       valid = false;
     }
+
     if (password && confirmPassword && password !== confirmPassword) {
       newErrors.passwordMatch = 'Les mots de passe ne correspondent pas';
       valid = false;
     }
+
     setErrors((prev) => ({ ...prev, ...newErrors }));
     if (!valid) return;
 
@@ -300,25 +351,27 @@ export default function Register(): JSX.Element {
             {step === 1 && (
               <>
                 <InputField
-                  icon={<User size={20} color="#EC4899" />}
+                  icon={<User />}
                   placeholder="Nom d'utilisateur"
                   value={username}
                   onChangeText={setUsername}
                   error={errors.username}
                 />
                 <InputField
-                  icon={<Mail size={20} color="#EC4899" />}
+                  icon={<Mail />}
                   placeholder="Email"
                   value={email}
                   onChangeText={setEmail}
-                  error={errors.emailPhone}
+                  keyboardType="email-address"
+                  error={errors.email}
                 />
                 <InputField
-                  icon={<Phone size={20} color="#EC4899" />}
+                  icon={<Phone />}
                   placeholder="Téléphone"
                   value={phone}
                   onChangeText={setPhone}
                   keyboardType="phone-pad"
+                  max={10}
                 />
 
                 <TouchableOpacity
@@ -339,8 +392,8 @@ export default function Register(): JSX.Element {
             {step === 2 && (
               <>
                 <InputField
-                  icon={<Lock size={20} color="#EC4899" />}
-                  placeholder="Mot de passe"
+                  icon={<Lock />}
+                  placeholder="Mot de passe (Min 6 caractères)"
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
@@ -349,7 +402,7 @@ export default function Register(): JSX.Element {
                   error={errors.password}
                 />
                 <InputField
-                  icon={<Lock size={20} color="#EC4899" />}
+                  icon={<Lock />}
                   placeholder="Confirmer le mot de passe"
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
@@ -405,7 +458,7 @@ export default function Register(): JSX.Element {
   );
 }
 
-// Styles conservés de ton code existant, inchangés pour UI/UX
+// --- STYLES ---
 const styles = StyleSheet.create({
   gradient: { flex: 1 },
   scrollContent: { flexGrow: 1, justifyContent: 'center', minHeight: height },
@@ -442,8 +495,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 14,
     height: height * 0.06,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    // La bordure est maintenant gérée dynamiquement dans le composant InputField
   },
   input: { flex: 1, fontSize: width * 0.038, color: '#111827' },
   signUpButton: {

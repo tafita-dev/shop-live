@@ -127,9 +127,7 @@ export default function Login() {
   });
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: BACKGROUND_COLOR }]}
-    >
+    <SafeAreaView style={[styles.container, { backgroundColor: CARD_BG }]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
@@ -312,15 +310,9 @@ const styles = StyleSheet.create({
   },
   // --- Carte d'Authentification (Auth Card) ---
   authCard: {
-    backgroundColor: CARD_BG,
-    borderRadius: 20,
     paddingHorizontal: 20,
     paddingVertical: 30,
-    shadowColor: TEXT_COLOR, // Ombre plus sombre pour le contraste sur fond clair
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 8,
+    shadowColor: TEXT_COLOR,
   },
   // --- Formulaire ---
   form: { marginBottom: 10 },

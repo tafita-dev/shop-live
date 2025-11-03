@@ -1,7 +1,7 @@
 export interface User {
   name: string;
   email?: string;
-  role: 'client' | 'vendor';
+  role?: 'client' | 'vendor';
   phone?: string;
   createdAt?: any;
   photoURL?: string;

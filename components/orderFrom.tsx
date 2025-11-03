@@ -1,5 +1,4 @@
-// OrderForm.tsx
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,61 +13,85 @@ import {
   useWindowDimensions,
 } from 'react-native';
 
-type FormValues = {
+// --- TYPES ET INTERFACES (Inchangés) ---
+export type FormValues = {
   name: string;
   email: string;
   phone: string;
-  address: string;
 };
 
 type OrderFormProps = {
-  initialValues?: Partial<FormValues>;
-  onSubmit?: (values: FormValues) => void;
-  submitLabel?: string;
+  values: FormValues;
+  setValues: React.Dispatch<React.SetStateAction<FormValues>>;
+  errors: Partial<FormValues>;
+  setErrors: React.Dispatch<React.SetStateAction<Partial<FormValues>>>;
 };
 
+// --- NOUVEAU: Composant de Champ de Saisie Personnalisé (UI/UX Dynamique) ---
+interface CustomInputProps {
+  label: string;
+  error?: string;
+  inputProps: React.ComponentProps<typeof TextInput>;
+  isTextArea?: boolean;
+  max?: number;
+}
+
+const CustomInput: React.FC<CustomInputProps> = ({
+  label,
+  error,
+  inputProps,
+  isTextArea = false,
+  max,
+}) => {
+  const [isFocused, setIsFocused] = useState(false);
+
+  // Détermination du style dynamique
+  const borderColor = error ? '#dc2626' : isFocused ? '#4c51bf' : '#e6e7eb';
+  const borderWidth = isFocused || error ? 2 : 1;
+
+  const inputStyle = useMemo(
+    () => [
+      styles.input,
+      isTextArea && styles.textarea,
+      { borderColor, borderWidth },
+    ],
+    [borderColor, borderWidth, isTextArea],
+  );
+
+  return (
+    <View style={styles.field}>
+      <Text style={styles.label}>{label}</Text>
+      <TextInput
+        {...inputProps}
+        maxLength={max}
+        style={inputStyle}
+        placeholderTextColor="#9ca3af"
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+      />
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+    </View>
+  );
+};
+
+// --- COMPOSANT PRINCIPAL ---
 export default function OrderForm({
-  initialValues = {},
-  onSubmit,
-  submitLabel = 'Valider',
+  setValues,
+  values,
+  errors,
+  setErrors,
 }: OrderFormProps) {
   const { width } = useWindowDimensions();
-  const [values, setValues] = useState<FormValues>({
-    name: initialValues.name || '',
-    email: initialValues.email || '',
-    phone: initialValues.phone || '',
-    address: initialValues.address || '',
-  });
 
-  const [errors, setErrors] = useState<Partial<FormValues>>({});
   const emailRef = useRef<TextInput | null>(null);
   const phoneRef = useRef<TextInput | null>(null);
   const addressRef = useRef<TextInput | null>(null);
 
   const isNarrow = width < 380;
 
-  const validate = (): boolean => {
-    const e: Partial<FormValues> = {};
-    if (!values.name.trim()) e.name = 'Le nom est requis';
-    if (!values.email.trim()) e.email = "L'email est requis";
-    else if (!/^\S+@\S+\.\S+$/.test(values.email)) e.email = 'Email invalide';
-    if (!values.phone.trim()) e.phone = 'Le téléphone est requis';
-    else if (!/^[0-9+\s()-]{6,20}$/.test(values.phone))
-      e.phone = 'Numéro invalide';
-    if (!values.address.trim()) e.address = "L'adresse est requise";
-
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  };
-
-  const handleSubmit = () => {
-    Keyboard.dismiss();
-    if (!validate()) return;
-    onSubmit?.(values);
-  };
-
   const onChange = (key: keyof FormValues, text: string) => {
     setValues((prev) => ({ ...prev, [key]: text }));
+    // Effacer l'erreur dès que l'utilisateur commence à taper à nouveau
     setErrors((prev) => ({ ...prev, [key]: undefined }));
   };
 
@@ -77,151 +100,137 @@ export default function OrderForm({
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.flex}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
+        // Ajustement de l'offset pour laisser plus d'espace sur mobile
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
       >
         <ScrollView
           contentContainerStyle={[styles.container, isNarrow && styles.narrow]}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.title}>Informations de livraison</Text>
-
           {/* NAME */}
-          <View style={styles.field}>
-            <Text style={styles.label}>Nom complet</Text>
-            <TextInput
-              value={values.name}
-              onChangeText={(t) => onChange('name', t)}
-              placeholder="Ex: Jean Rakoto"
-              returnKeyType="next"
-              onSubmitEditing={() => emailRef.current?.focus()}
-              blurOnSubmit={false}
-              style={styles.input}
-              autoCapitalize="words"
-              autoComplete="name"
-              accessibilityLabel="Nom complet"
-            />
-            {errors.name ? (
-              <Text style={styles.error}>{errors.name}</Text>
-            ) : null}
-          </View>
+          <CustomInput
+            label="Nom complet"
+            error={errors.name}
+            inputProps={{
+              value: values.name,
+              onChangeText: (t) => onChange('name', t),
+              placeholder: 'Ex: Jean Rakoto',
+              returnKeyType: 'next',
+              onSubmitEditing: () => emailRef.current?.focus(),
+              autoCapitalize: 'words',
+              autoComplete: 'name',
+            }}
+          />
 
           {/* EMAIL */}
-          <View style={styles.field}>
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              ref={emailRef}
-              value={values.email}
-              onChangeText={(t) => onChange('email', t)}
-              placeholder="exemple@domaine.com"
-              keyboardType="email-address"
-              returnKeyType="next"
-              onSubmitEditing={() => phoneRef.current?.focus()}
-              blurOnSubmit={false}
-              style={styles.input}
-              autoCapitalize="none"
-              autoComplete="email"
-              textContentType="emailAddress"
-              accessibilityLabel="Adresse email"
-            />
-            {errors.email ? (
-              <Text style={styles.error}>{errors.email}</Text>
-            ) : null}
-          </View>
+          <CustomInput
+            label="Email"
+            error={errors.email}
+            inputProps={{
+              value: values.email,
+              onChangeText: (t) => onChange('email', t),
+              placeholder: 'exemple@domaine.com',
+              keyboardType: 'email-address',
+              returnKeyType: 'next',
+              onSubmitEditing: () => phoneRef.current?.focus(),
+              autoCapitalize: 'none',
+              autoComplete: 'email',
+              textContentType: 'emailAddress',
+            }}
+          />
 
           {/* PHONE */}
-          <View style={styles.field}>
-            <Text style={styles.label}>Téléphone</Text>
-            <TextInput
-              ref={phoneRef}
-              value={values.phone}
-              onChangeText={(t) => onChange('phone', t)}
-              placeholder="+261 34 12 345 67"
-              keyboardType="phone-pad"
-              returnKeyType="next"
-              onSubmitEditing={() => addressRef.current?.focus()}
-              blurOnSubmit={false}
-              style={styles.input}
-              autoComplete="tel"
-              textContentType="telephoneNumber"
-              accessibilityLabel="Numéro de téléphone"
-            />
-            {errors.phone ? (
-              <Text style={styles.error}>{errors.phone}</Text>
-            ) : null}
-          </View>
-
-          <View style={{ height: 30 }} />
+          <CustomInput
+            label="Téléphone"
+            max={10}
+            error={errors.phone}
+            inputProps={{
+              value: values.phone,
+              onChangeText: (t) => onChange('phone', t),
+              placeholder: '+261 34 12 345 67',
+              keyboardType: 'phone-pad',
+              returnKeyType: 'next',
+              onSubmitEditing: () => addressRef.current?.focus(),
+              autoComplete: 'tel',
+              textContentType: 'telephoneNumber',
+            }}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </TouchableWithoutFeedback>
   );
 }
 
+// --- STYLES AMÉLIORÉS ---
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: {
     paddingHorizontal: 20,
     paddingTop: 18,
     paddingBottom: 40,
-    backgroundColor: 'transparent',
+    width: 300,
+    backgroundColor: '#fff', // Un fond blanc pour le formulaire
   },
   narrow: {
     paddingHorizontal: 14,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 14,
+    fontSize: 22, // Plus grand
+    fontWeight: '800', // Plus gras
+    marginBottom: 20, // Plus d'espace
     color: '#1f2937',
+    textAlign: 'center', // Centré
   },
   field: {
-    marginBottom: 12,
+    marginBottom: 16, // Plus d'espace entre les champs
   },
   label: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#374151',
-    marginBottom: 6,
-    fontWeight: '600',
+    marginBottom: 4,
+    fontWeight: '700', // Plus gras
   },
   input: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: Platform.OS === 'ios' ? 12 : 8,
-    borderWidth: 1,
-    borderColor: '#e6e7eb',
+    backgroundColor: '#f9fafb', // Légèrement grisé pour contraste
+    borderRadius: 8, // Arrondi plus doux
+    paddingHorizontal: 16, // Plus de padding
+    paddingVertical: Platform.OS === 'ios' ? 14 : 10,
     fontSize: 15,
     color: '#111827',
-    shadowColor: '#000',
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
+    // La bordure est gérée dynamiquement
   },
   textarea: {
-    minHeight: 80,
+    minHeight: 100, // Plus grand
     textAlignVertical: 'top',
-    paddingTop: 10,
+    paddingTop: 14,
   },
   error: {
-    marginTop: 6,
+    marginTop: 4, // Moins d'espace pour que l'erreur soit proche
     color: '#dc2626',
     fontSize: 12,
+    fontWeight: '600',
   },
   actions: {
-    marginTop: 16,
+    marginTop: 24, // Plus d'espace avant le bouton
     alignItems: 'center',
   },
   submitButton: {
-    backgroundColor: '#4c51bf',
-    paddingVertical: 12,
-    paddingHorizontal: 28,
-    borderRadius: 12,
-    minWidth: 160,
-    alignItems: 'center',
+    backgroundColor: '#4c51bf', // Couleur primaire (Bleu/Violet)
+    paddingVertical: 14, // Plus grand
+    paddingHorizontal: 40,
+    borderRadius: 10,
+    minWidth: '70%', // Plus large
+    shadowColor: '#4c51bf',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 8,
   },
   submitText: {
     color: '#fff',
-    fontWeight: '700',
-    fontSize: 16,
+    fontWeight: '800',
+    fontSize: 17,
+    textTransform: 'uppercase', // Pour plus d'impact
   },
 });

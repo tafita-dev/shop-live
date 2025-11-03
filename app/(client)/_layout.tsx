@@ -148,7 +148,10 @@ export default function TabsLayout() {
         <View style={styles.profileSection}>
           <Image
             source={{
-              uri: userInfo.photoURL || 'https://i.pravatar.cc/150?img=3',
+              uri:
+                userInfo && userInfo.photoURL
+                  ? userInfo.photoURL
+                  : 'https://res.cloudinary.com/dfywekuna/image/upload/v1736843708/20171206_01_jx8oyo.jpg',
             }}
             style={styles.avatar}
           />

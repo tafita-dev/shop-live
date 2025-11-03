@@ -148,9 +148,9 @@ export default function VendorLayout() {
         <View style={styles.profileSection}>
           <Image
             source={{
-              uri:
-                userInfo.photoURL ||
-                'https://res.cloudinary.com/dfywekuna/image/upload/v1736843708/20171206_01_jx8oyo.jpg',
+              uri: userInfo.photoURL
+                ? userInfo.photoURL
+                : 'https://res.cloudinary.com/dfywekuna/image/upload/v1736843708/20171206_01_jx8oyo.jpg',
             }}
             style={styles.avatar}
           />
