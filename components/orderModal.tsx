@@ -57,7 +57,7 @@ const OrderModal: React.FC<orderProps> = ({ visible, setVisible }) => {
 
           {/* Contenu principal (UX: Laisse l'espace pour la barre d'état) */}
           <View style={styles.content}>
-            <OrderScreen />
+            <OrderScreen setVisible={setVisible} />
           </View>
         </View>
       </SafeAreaView>

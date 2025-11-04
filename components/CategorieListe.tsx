@@ -8,11 +8,9 @@ import {
   Alert,
   Dimensions,
   FlatList,
-  Platform, // Ajouté pour une meilleure compatibilité des styles
 } from 'react-native';
 import { Plus, Edit, Trash2, Eye } from 'lucide-react-native';
 import { Categorie } from '@/types/categorie';
-// Assurez-vous que CategorieClass est correctement défini
 import { CategorieClass } from '@/users/categorie';
 import Spinner from 'react-native-loading-spinner-overlay';
 import { router } from 'expo-router';
@@ -27,37 +25,16 @@ const CategoriesListes: React.FC<categorieProsps> = ({ setStep }) => {
   const [categories, setCategories] = useState<Categorie[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // La modal n'est plus nécessaire si on utilise router.push
-  // const [modalVisible, setModalVisible] = useState(false);
-  // const [selectedCategory, setSelectedCategory] = useState<Categorie | null>(null);
-
-  const [numColumns, setNumColumns] = useState(
-    width > 768 ? 4 : width > 480 ? 3 : 2,
-  ); // 4 colonnes sur très grand écran
-
-  // 🔁 Recalculer le nombre de colonnes à chaque changement d'orientation/taille
-  useEffect(() => {
-    const updateColumns = ({ window }: { window: { width: number } }) => {
-      setNumColumns(window.width > 768 ? 4 : window.width > 480 ? 3 : 2);
-    };
-
-    const subscription = Dimensions.addEventListener('change', updateColumns);
-    return () => subscription.remove();
-  }, []);
+  const [numColumns, setNumColumns] = useState(3); // 🟢 Toujours 3 colonnes
 
   const fetchCategories = async () => {
     setLoading(true);
     try {
-      // 🟢 Rétablissement de l'appel à l'API réelle
       const data = await CategorieClass.getCategories();
       setCategories(data);
     } catch (error) {
-      // Pour une meilleure gestion des erreurs
       console.error('Erreur lors du chargement des catégories:', error);
-      Alert.alert(
-        'Erreur',
-        'Impossible de charger les catégories depuis le serveur.',
-      );
+      Alert.alert('Erreur', 'Impossible de charger les catégories.');
     } finally {
       setLoading(false);
     }
@@ -70,12 +47,7 @@ const CategoriesListes: React.FC<categorieProsps> = ({ setStep }) => {
   const handleAdd = () => setStep(2);
 
   const handleEdit = (item: Categorie) => {
-    // Si la page d'édition est une autre route Expo, utilisez :
-    // router.push({ pathname: '/edit-category', params: { categoryId: item.id } });
-    Alert.alert(
-      'Modification',
-      `Ouvrir la modale/page pour modifier : ${item.name}`,
-    );
+    Alert.alert('Modification', `Modifier : ${item.name}`);
   };
 
   const handleDelete = (id: string) => {
@@ -88,7 +60,7 @@ const CategoriesListes: React.FC<categorieProsps> = ({ setStep }) => {
           text: 'Supprimer',
           style: 'destructive',
           onPress: async () => {
-            await CategorieClass.deleteCategorie(id); // Décommentez pour l'API réelle
+            await CategorieClass.deleteCategorie(id);
             setCategories(categories.filter((c) => c.id !== id));
             Alert.alert('Succès', 'Catégorie supprimée.');
           },
@@ -98,58 +70,51 @@ const CategoriesListes: React.FC<categorieProsps> = ({ setStep }) => {
   };
 
   const handleView = (item: Categorie) => {
-    // Naviguer vers la page des produits de cette catégorie
-    // On passe le nom/ID en paramètre pour la page de destination
     router.push({
       pathname: '/products',
       params: { categoryId: item.id, categoryName: item.name },
     });
   };
 
-  // Calcul dynamique de la hauteur de l'image pour un ratio cohérent (par exemple 4:3)
-  const cardWidth = width / numColumns - (numColumns > 1 ? 10 : 20); // Estimation pour le padding/margin
-  const image_height = cardWidth * (3 / 4); // Ratio 4:3 pour l'image (si cardWidth est la largeur, hauteur = 75% de la largeur)
+  const cardWidth = width / 3 - 18; // 🟡 Ajusté pour 3 colonnes
+  const imageHeight = cardWidth * 0.5;
 
   const renderItem = ({ item }: { item: Categorie }) => (
-    <View style={styles.card}>
-      {/* Image avec hauteur calculée */}
-      <Image
-        source={{ uri: item.image }}
-        style={[styles.image, { height: image_height }]}
-        resizeMode="cover"
-      />
-      <View style={styles.cardBody}>
-        {/* Nom sur une seule ligne pour rester compact */}
-        <Text style={styles.name} numberOfLines={1}>
-          {item.name}
-        </Text>
-        <Text style={styles.date}>{item.createdAt}</Text>
+    <View style={[styles.card, { width: cardWidth }]}>
+      <View style={styles.folderTop} />
+      <View style={styles.folderBody}>
+        <Image
+          source={{ uri: item.image }}
+          style={[styles.image, { height: imageHeight }]}
+          resizeMode="cover"
+        />
+      </View>
 
-        <View style={styles.actions}>
-          <TouchableOpacity
-            onPress={() => handleView(item)}
-            style={[styles.actionBtn, styles.viewBtn]}
-            accessibilityLabel={`Voir les produits de ${item.name}`}
-          >
-            <Eye size={16} color="#EC4899" />
-          </TouchableOpacity>
+      <Text style={styles.name} numberOfLines={1}>
+        {item.name}
+      </Text>
 
-          <TouchableOpacity
-            onPress={() => handleEdit(item)}
-            style={[styles.actionBtn, styles.editBtn]}
-            accessibilityLabel={`Modifier ${item.name}`}
-          >
-            <Edit size={16} color="#1f2937" />
-          </TouchableOpacity>
+      <View style={styles.actions}>
+        <TouchableOpacity
+          onPress={() => handleView(item)}
+          style={[styles.actionBtn, styles.viewBtn]}
+        >
+          <Eye size={13} color="#EC4899" />
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={() => handleDelete(item.id!)}
-            style={[styles.actionBtn, styles.deleteBtn]}
-            accessibilityLabel={`Supprimer ${item.name}`}
-          >
-            <Trash2 size={16} color="#fff" />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          onPress={() => handleEdit(item)}
+          style={[styles.actionBtn, styles.editBtn]}
+        >
+          <Edit size={13} color="#1f2937" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => handleDelete(item.id!)}
+          style={[styles.actionBtn, styles.deleteBtn]}
+        >
+          <Trash2 size={13} color="#fff" />
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -163,7 +128,7 @@ const CategoriesListes: React.FC<categorieProsps> = ({ setStep }) => {
       />
 
       <View style={styles.header}>
-        <Text style={styles.title}>Mes Catégories </Text>
+        <Text style={styles.title}>Mes Catégories</Text>
         <TouchableOpacity onPress={handleAdd} style={styles.addBtn}>
           <Plus size={18} color="#fff" />
           <Text style={styles.addText}>Ajouter</Text>
@@ -171,14 +136,13 @@ const CategoriesListes: React.FC<categorieProsps> = ({ setStep }) => {
       </View>
 
       <FlatList
-        key={numColumns} // Force le re-render au changement de colonnes
         data={categories}
         keyExtractor={(item) => item.id!}
         renderItem={renderItem}
         numColumns={numColumns}
         columnWrapperStyle={styles.row}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 80 }}
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>
@@ -187,7 +151,6 @@ const CategoriesListes: React.FC<categorieProsps> = ({ setStep }) => {
           </View>
         }
       />
-      {/* La Modal de détail a été supprimée car handleView utilise la navigation (router.push) */}
     </View>
   );
 };
@@ -197,124 +160,114 @@ export default CategoriesListes;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f4f4f4', // Fond plus doux
-    paddingHorizontal: 10,
-    paddingTop: 10,
+    backgroundColor: '#f4f4f4',
+    paddingHorizontal: 8,
+    paddingTop: 8,
   },
-
-  // Header
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 10,
   },
   title: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '800',
-    color: '#1f2937', // Noir plus profond
+    color: '#1f2937',
   },
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#EC4899',
-    paddingHorizontal: 15, // Plus grand
-    paddingVertical: 10, // Plus grand
-    borderRadius: 10,
-    shadowColor: '#EC4899',
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 3,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
   },
-  addText: { color: '#fff', marginLeft: 8, fontWeight: '700' },
-
-  // FlatList & Grid
+  addText: { color: '#fff', marginLeft: 6, fontWeight: '700', fontSize: 13 },
   row: {
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 8,
   },
 
-  // Card (Améliorations)
+  // 🟡 Dossier style compact
   card: {
-    flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 12, // Coins arrondis plus modernes
-    margin: 5, // Marge ajustée pour la grille
-    overflow: 'hidden',
+    backgroundColor: '#FBC02D',
+    borderRadius: 8,
+    margin: 4,
+    alignItems: 'center',
     shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 5,
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+    paddingBottom: 6,
+  },
+  folderTop: {
+    height: 8,
+    width: '45%',
+    backgroundColor: '#FDD835',
+    borderTopLeftRadius: 5,
+    borderTopRightRadius: 5,
+    alignSelf: 'flex-start',
+    marginLeft: 8,
+  },
+  folderBody: {
+    width: '100%',
+    backgroundColor: '#FFE082',
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
   },
   image: {
-    width: '100%',
-    // La hauteur est calculée dynamiquement dans renderItem
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-  },
-  cardBody: {
-    padding: 10,
-    // Hauteur minimale pour que toutes les cartes aient la même taille de base
-    minHeight: 80,
+    width: '88%',
+    borderRadius: 5,
+    marginVertical: 5,
   },
   name: {
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: '700',
-    color: '#EC4899', // Nom en couleur principale
-    marginBottom: 2,
-  },
-  date: {
-    fontSize: 11,
-    color: '#9ca3af', // Gris clair
-    marginBottom: 10,
+    color: '#1f2937',
+    marginTop: 3,
   },
   actions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 'auto', // Pousse les actions vers le bas
+    marginTop: 3,
   },
-
-  // Action Buttons (Améliorations)
   actionBtn: {
     flex: 1,
-    marginHorizontal: 3,
-    padding: 8, // Zone de clic augmentée
-    borderRadius: 8,
+    marginHorizontal: 2,
+    padding: 5,
+    borderRadius: 6,
     alignItems: 'center',
     borderWidth: 1,
   },
   viewBtn: {
-    backgroundColor: '#f8f8f8',
+    backgroundColor: '#fff',
     borderColor: '#EC4899',
   },
   editBtn: {
-    backgroundColor: '#f8f8f8',
+    backgroundColor: '#fff',
     borderColor: '#1f2937',
   },
   deleteBtn: {
     backgroundColor: '#ff1744',
     borderColor: '#ff1744',
   },
-
-  // Empty State
   emptyState: {
     flex: 1,
-    padding: 40,
+    padding: 30,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 50,
     backgroundColor: '#fff',
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#fecaca',
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: 15,
     textAlign: 'center',
     color: '#EC4899',
     fontWeight: '600',
   },
-
-  // Modal styles supprimés car la modal est retirée
 });

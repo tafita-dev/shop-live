@@ -7,7 +7,7 @@ import {
   Image,
   Alert,
   useWindowDimensions,
-  ScrollView,
+  FlatList,
 } from 'react-native';
 import { Card, Appbar, Modal, Portal, Provider } from 'react-native-paper';
 import { Edit, Trash2, Plus, X } from 'lucide-react-native';
@@ -20,14 +20,6 @@ import ReusableModal from '@/components/confirmation';
 
 export default function VendorProducts() {
   const { width, height } = useWindowDimensions();
-
-  const MAX_COLUMNS = 4;
-  const MIN_COLUMNS = 2;
-  const CARD_MARGIN = 10;
-  const numColumns = width > 768 ? MAX_COLUMNS : width > 480 ? 3 : MIN_COLUMNS;
-  const cardWidth = (width - CARD_MARGIN * (numColumns + 1)) / numColumns;
-  const responsiveCardFontSize = (factor: number) => cardWidth * factor;
-
   const [showModal, setShowModal] = useState(false);
   const [showModalDelete, setShowModalDelete] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(
@@ -43,18 +35,14 @@ export default function VendorProducts() {
   const categoryId = params.categoryId ?? 'Aucun lien';
   const categoryName = params.categoryName ?? 'Aucun lien';
 
-  // 🟢 Chargement des produits
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
       const data = await ProduitClass.getProduits(categoryId);
       setProducts(data);
     } catch (error) {
-      console.error('Erreur lors du chargement des produits:', error);
-      Alert.alert(
-        'Erreur',
-        'Impossible de charger les produits depuis le serveur.',
-      );
+      console.error(error);
+      Alert.alert('Erreur', 'Impossible de charger les produits.');
       setProducts([]);
     } finally {
       setLoading(false);
@@ -68,22 +56,17 @@ export default function VendorProducts() {
   const handleEdit = (item: Product) => {
     Alert.alert(
       'Modification',
-      `Ouvrir la modale pour modifier: ${item.description}`,
+      `Ouvrir la modale pour modifier: ${item.title}`,
     );
   };
 
-  // 🟢 Suppression du produit
   const handleDelete = async (id: string) => {
     setLoading(true);
     try {
       const res = await ProduitClass.deleteProduit(id);
-      if (res.success) {
-        setProducts((p) => p?.filter((x) => x.id !== id));
-        Alert.alert('Succès', 'Produit supprimé avec succès.');
-      } else {
-        Alert.alert('Erreur', res.message || 'La suppression a échoué.');
-      }
-    } catch (error) {
+      if (res.success) setProducts((p) => p?.filter((x) => x.id !== id));
+      else Alert.alert('Erreur', res.message || 'La suppression a échoué.');
+    } catch {
       Alert.alert('Erreur', 'Impossible de contacter le serveur.');
     } finally {
       setLoading(false);
@@ -96,161 +79,98 @@ export default function VendorProducts() {
     setShowModal(false);
     if (shouldRefresh) fetchProducts();
   };
-
   const handleCreateSuccess = () => handleModalClose(true);
 
-  const IMAGE_RATIO = 0.5;
+  const renderItem = ({ item }: { item: Product }) => {
+    const isOutOfStock = item.stock === 0;
+    return (
+      <Card
+        style={[styles.card, { opacity: isOutOfStock ? 0.6 : 1 }]}
+        mode="elevated"
+      >
+        <View style={styles.musicRow}>
+          <Image
+            source={{ uri: item.image || 'https://via.placeholder.com/60' }}
+            style={styles.musicImage}
+          />
+          <View style={styles.musicInfo}>
+            <Text style={styles.name} numberOfLines={1}>
+              {item.title}
+            </Text>
+            <Text style={styles.code}>{item.code || 'Artiste inconnu'}</Text>
+          </View>
+          <View style={styles.actions}>
+            <TouchableOpacity
+              onPress={() => handleEdit(item)}
+              style={[styles.icon, { backgroundColor: '#10B981' }]}
+            >
+              <Edit size={20} color="#fff" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                setSelectedProductId(item.id as string);
+                setShowModalDelete(true);
+              }}
+              style={[
+                styles.icon,
+                { backgroundColor: '#ff1744', marginLeft: 5 },
+              ]}
+            >
+              <Trash2 size={20} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Card>
+    );
+  };
 
   return (
     <Provider>
       <Spinner
         visible={loading}
-        textContent={'Chargement des produits...'}
+        textContent="Chargement des produits..."
         textStyle={{ color: '#fff' }}
-        overlayColor="rgba(0, 0, 0, 0.7)"
+        overlayColor="rgba(0,0,0,0.7)"
       />
 
       <Appbar.Header style={styles.appBar}>
         <Appbar.BackAction onPress={() => router.back()} color="#fff" />
         <Appbar.Content
-          title={`Mes Produits ${categoryName}`}
+          title={`Mes Musiques ${categoryName}`}
           titleStyle={styles.appBarTitle}
         />
-
         <TouchableOpacity
           onPress={() => setShowModal(true)}
           style={styles.appBarPlusIcon}
-          accessibilityLabel="Ajouter un nouveau produit"
           disabled={loading}
         >
           <Plus size={20} color="#EC4899" />
         </TouchableOpacity>
       </Appbar.Header>
 
-      <ScrollView
-        contentContainerStyle={[
-          styles.scrollViewContent,
-          { padding: CARD_MARGIN, paddingBottom: 80 },
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
-        {!loading && products && (
-          <View style={[styles.grid, { marginHorizontal: -CARD_MARGIN }]}>
-            {products.map((item) => {
-              const isOutOfStock = item.stock === 0;
-              return (
-                <Card
-                  key={item.id || item.code || Math.random().toString()}
-                  style={[
-                    styles.card,
-                    {
-                      width: cardWidth,
-                      margin: CARD_MARGIN / 2,
-                      marginBottom: CARD_MARGIN,
-                      opacity: isOutOfStock ? 0.7 : 1,
-                    },
-                  ]}
-                  mode="elevated"
-                >
-                  <View style={styles.imageContainer}>
-                    <Image
-                      source={{
-                        uri: item.image || 'https://via.placeholder.com/150',
-                      }}
-                      style={[
-                        styles.image,
-                        { height: cardWidth * IMAGE_RATIO },
-                      ]}
-                      resizeMode="cover"
-                    />
-                    {isOutOfStock && (
-                      <View style={styles.stockOverlay}>
-                        <Text style={styles.stockText}>ÉPUISÉ</Text>
-                      </View>
-                    )}
-                  </View>
-
-                  <View style={styles.body}>
-                    <Text
-                      style={[
-                        styles.code,
-                        { fontSize: responsiveCardFontSize(0.055) },
-                      ]}
-                    >
-                      {item.code || 'N/A'}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.name,
-                        { fontSize: responsiveCardFontSize(0.055) },
-                      ]}
-                      numberOfLines={2}
-                    >
-                      {item.title || 'Produit sans titre'}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.price,
-                        { fontSize: responsiveCardFontSize(0.055) },
-                      ]}
-                    >
-                      {item.price
-                        .toLocaleString('fr-FR', {
-                          style: 'currency',
-                          currency: 'MGA',
-                          minimumFractionDigits: 0,
-                        })
-                        .replace('MGA', 'Ar')}
-                    </Text>
-
-                    <View style={styles.actions}>
-                      <TouchableOpacity
-                        onPress={() => handleEdit(item)}
-                        style={[styles.icon, { backgroundColor: '#10B981' }]}
-                        accessibilityLabel="Modifier le produit"
-                      >
-                        <Edit
-                          size={responsiveCardFontSize(0.065)}
-                          color="#fff"
-                        />
-                      </TouchableOpacity>
-                      <View style={{ width: CARD_MARGIN }} />
-                      <TouchableOpacity
-                        onPress={() => {
-                          setSelectedProductId((item.id as string) || '');
-                          setShowModalDelete(true);
-                        }}
-                        style={[styles.icon, { backgroundColor: '#ff1744' }]}
-                        accessibilityLabel="Supprimer le produit"
-                      >
-                        <Trash2
-                          size={responsiveCardFontSize(0.065)}
-                          color="#fff"
-                        />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </Card>
-              );
-            })}
-          </View>
-        )}
-
-        {!loading && products && products.length === 0 && (
+      {products && products.length > 0 ? (
+        <FlatList
+          data={products}
+          keyExtractor={(item) => item.id as string}
+          renderItem={renderItem}
+          contentContainerStyle={{ padding: 10, paddingBottom: 80 }}
+        />
+      ) : (
+        !loading && (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>
               Votre catalogue est vide. Cliquez sur le '+' pour ajouter votre
-              premier produit !
+              première musique !
             </Text>
           </View>
-        )}
-      </ScrollView>
+        )
+      )}
 
       <Portal>
         <ReusableModal
           showModal={showModalDelete}
-          title="Supprimer le Produit"
-          message="Êtes-vous sûr de vouloir supprimer ce produit ? Cette action est irréversible."
+          title="Supprimer la musique"
+          message="Êtes-vous sûr de vouloir supprimer cette musique ?"
           onClose={() => setShowModalDelete(false)}
           onConfirm={() => selectedProductId && handleDelete(selectedProductId)}
           confirmColor="#EC4899"
@@ -267,7 +187,7 @@ export default function VendorProducts() {
           ]}
         >
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Ajouter un Nouveau Produit</Text>
+            <Text style={styles.modalTitle}>Ajouter une Nouvelle Musique</Text>
             <TouchableOpacity
               onPress={() => handleModalClose(false)}
               style={styles.modalCloseButton}
@@ -275,102 +195,42 @@ export default function VendorProducts() {
               <X size={20} color="#fff" />
             </TouchableOpacity>
           </View>
-          <ScrollView style={styles.modalScrollView}>
-            <CreateProduct handleModalClose={handleCreateSuccess} />
-          </ScrollView>
+          <CreateProduct handleModalClose={handleCreateSuccess} />
         </Modal>
       </Portal>
-
-      {/* 🟢 Confirmation suppression */}
     </Provider>
   );
 }
 
-// Styles inchangés
 const styles = StyleSheet.create({
-  appBar: {
-    backgroundColor: '#EC4899',
-    elevation: 6,
-    shadowColor: '#000',
-  },
-  appBarTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '800',
-  },
+  appBar: { backgroundColor: '#EC4899', elevation: 6, shadowColor: '#000' },
+  appBarTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
   appBarPlusIcon: {
     backgroundColor: '#fff',
     borderRadius: 50,
     padding: 6,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
     marginRight: 6,
-  },
-  scrollViewContent: {
-    flexGrow: 1,
-    backgroundColor: '#f8f8f8',
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
   },
   card: {
     borderRadius: 12,
     overflow: 'hidden',
-    elevation: 4,
+    marginVertical: 5,
     backgroundColor: '#fff',
+    padding: 10,
   },
-  imageContainer: { position: 'relative' },
-  image: {
-    width: '100%',
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-  },
-  stockOverlay: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    backgroundColor: 'rgba(255, 0, 0, 0.7)',
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderBottomLeftRadius: 8,
-  },
-  stockText: { color: '#fff', fontWeight: '900', fontSize: 8 },
-  body: { alignItems: 'center', padding: 4, minHeight: 60 },
-  code: { color: '#9ca3af', fontWeight: '700' },
-  name: {
-    fontWeight: '700',
-    color: '#1f2937',
-    textAlign: 'center',
-    minHeight: 25,
-  },
-  price: { fontWeight: '900', color: '#EC4899', marginTop: 2 },
-  actions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-    justifyContent: 'space-between',
-  },
-  icon: {
-    padding: 4,
-    borderRadius: 6,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 3,
-  },
+  musicRow: { flexDirection: 'row', alignItems: 'center' },
+  musicImage: { width: 60, height: 60, borderRadius: 6 },
+  musicInfo: { flex: 1, marginLeft: 10 },
+  name: { fontWeight: '700', color: '#1f2937', fontSize: 16 },
+  code: { color: '#9ca3af', fontSize: 12 },
+  actions: { flexDirection: 'row' },
+  icon: { padding: 6, borderRadius: 6 },
   modalContainer: {
     margin: 0,
     alignSelf: 'center',
     borderRadius: 15,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 10,
+    backgroundColor: '#fff',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -378,17 +238,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 15,
     backgroundColor: '#EC4899',
-    borderTopLeftRadius: 15,
-    borderTopRightRadius: 15,
   },
   modalTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
   modalCloseButton: {
     backgroundColor: '#ff1744',
     borderRadius: 50,
     padding: 4,
-    marginLeft: 10,
   },
-  modalScrollView: { flexGrow: 1, backgroundColor: '#f8f8f8' },
   emptyState: {
     flex: 1,
     padding: 40,

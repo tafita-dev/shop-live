@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,23 +13,23 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MotiView } from 'moti';
 import {
   getAllCarts,
   increaseQuantity,
   decreaseQuantity,
   removeFromCart,
+  clearCartByVendor,
 } from '../utils/cartStorage';
 import { useRouter } from 'expo-router';
 import { useCart } from './contexts/CartContext';
-import { isNull, toString } from 'lodash';
+import { cond, isNull, toString } from 'lodash';
 import OrderForm, { FormValues } from './orderFrom';
 import { authStorage, fetchFirebaseUserInfo } from '@/utils/authStorage';
 import Textarea from './Adresse';
 import OrderConfirmation from './OrderConfirmation';
-import { createOrder, Order, OrderItem } from '@/users/payment';
+import { createOrderWithReservations, Order, OrderItem } from '@/users/payment';
+import { QRModal } from './qrcode';
 
-// 🎨 Couleurs principales
 const PRIMARY_COLOR = '#4c51bf';
 const ACCENT_COLOR = '#ec4899';
 const TEXT_COLOR_PRIMARY = '#1f2937';
@@ -37,7 +37,6 @@ const TEXT_COLOR_SECONDARY = '#6b7280';
 const BG_COLOR = '#f9fafb';
 const CARD_BG = '#ffffff';
 
-/* ---------------- Étapes d’avancement ---------------- */
 const Step = ({ title, index, currentStep }: any) => {
   const isActive = currentStep >= index;
   return (
@@ -76,7 +75,6 @@ const Step = ({ title, index, currentStep }: any) => {
   );
 };
 
-/* ---------------- Bouton dégradé ---------------- */
 const GradientButton = ({ onPress, title, colors, style, textStyle }: any) => (
   <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={style}>
     <LinearGradient
@@ -90,7 +88,6 @@ const GradientButton = ({ onPress, title, colors, style, textStyle }: any) => (
   </TouchableOpacity>
 );
 
-/* ---------------- En-tête du vendeur ---------------- */
 const VendorHeader = ({
   vendorId,
   total,
@@ -98,12 +95,17 @@ const VendorHeader = ({
   vendorId: string;
   total: number;
 }) => <View></View>;
+type orderProps = {
+  setVisible: React.Dispatch<React.SetStateAction<boolean>>;
+};
 
-export default function OrderScreen() {
+export default function OrderScreen({ setVisible }: orderProps) {
   const [cartData, setCartData] = useState<any[]>([]);
   const [currentStep, setCurrentStep] = useState(1);
   const [errors, setErrors] = useState<Partial<FormValues>>({});
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [VisibleModal, SetVisibleModale] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [submittedError, setSubmittedError] = useState(false);
@@ -115,7 +117,6 @@ export default function OrderScreen() {
   const { refreshCart } = useCart();
   const router = useRouter();
 
-  /* ---------------- Validation du formulaire ---------------- */
   const validate = useCallback((): boolean => {
     const e: Partial<FormValues> = {};
     if (!values.name.trim()) e.name = 'Le nom est requis';
@@ -129,10 +130,13 @@ export default function OrderScreen() {
   }, [values]);
 
   const [selected, setSelected] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string>('');
 
   const handleSubmit = async () => {
     try {
-      const uid = (await authStorage.getUserId()) ?? ''; // jamais undefined
+      setIsSubmitting(true);
+
+      const uid = (await authStorage.getUserId()) ?? '';
 
       const vendorIds = cartData.map((i) => i.vendorId).filter(Boolean);
       const cart: OrderItem[] = cartData
@@ -140,11 +144,10 @@ export default function OrderScreen() {
         .map((p) => ({
           image: p.image ?? '',
           price: p.price ?? 0,
-          productId: p.id ?? '', // jamais undefined
+          productId: p.id ?? '',
           quantity: p.quantity ?? 1,
           title: p.title ?? '',
         }));
-      console.log(cart, 'cart', cartData);
 
       if (cart.length === 0) throw new Error('Le panier est vide');
       if (!vendorIds[0]) throw new Error('VendorId manquant');
@@ -159,19 +162,29 @@ export default function OrderScreen() {
         },
         items: cart,
         paymentMethod: selected ?? 'CSH',
-        status: 'pending',
+        status: 'payer',
         totalPrice: getTotal ?? 0,
         userId: uid,
         vendorId: vendorIds[0],
       };
 
-      const response = await createOrder(order);
+      const respose = await createOrderWithReservations(order);
+      if (!respose.success) {
+        Alert.alert('Erreur', 'Erreur lors de la création de la commande');
+      } else {
+        SetVisibleModale(true);
+        await clearCartByVendor(vendorIds[0]);
+        console.log(respose.data, 'hjhgjghg');
+        setSelectedId(respose.data);
+        await refreshCart(vendorIds[0]);
+      }
     } catch (error) {
-      console.error('Erreur lors de la création de la commande:', error);
+      Alert.alert('Erreur', 'Erreur lors de la création de la commande');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  /* ---------------- Chargement des infos utilisateur ---------------- */
   useEffect(() => {
     const loadUserData = async () => {
       try {
@@ -195,7 +208,6 @@ export default function OrderScreen() {
     loadUserData();
   }, []);
 
-  /* ---------------- Chargement du panier ---------------- */
   const getVendorTotal = (items: any[]) =>
     items.reduce(
       (sum, item) => sum + (item.price || 0) * (item.quantity || 1),
@@ -234,7 +246,6 @@ export default function OrderScreen() {
     loadCart();
   }, [loadCart]);
 
-  /* ---------------- Actions panier ---------------- */
   const handleIncrease = async (vendorId: string, productId: string) => {
     await increaseQuantity(vendorId, productId);
     await refreshCart(vendorId);
@@ -253,7 +264,6 @@ export default function OrderScreen() {
     loadCart();
   };
 
-  /* ---------------- Calcul du total global ---------------- */
   const getTotal = useMemo(() => {
     return cartData.reduce((sum, item) => {
       if (item.type === 'ITEM') {
@@ -265,7 +275,6 @@ export default function OrderScreen() {
     }, 0);
   }, [cartData]);
 
-  /* ---------------- Navigation entre étapes ---------------- */
   const nextStep = () => {
     if (currentStep === 1 && getTotal === 0) {
       return Alert.alert(
@@ -298,14 +307,8 @@ export default function OrderScreen() {
     else router.back();
   };
 
-  /* ---------------- Rendu des éléments ---------------- */
   const renderCartItem = (item: any, index: number) => (
-    <MotiView
-      from={{ opacity: 0, translateY: 20 }}
-      animate={{ opacity: 1, translateY: 0 }}
-      transition={{ delay: index * 50, damping: 15, stiffness: 150 }}
-      style={styles.cartItemContainer}
-    >
+    <View style={styles.cartItemContainer}>
       <View style={styles.cardContent}>
         <Image
           source={{
@@ -362,7 +365,7 @@ export default function OrderScreen() {
           </TouchableOpacity>
         </View>
       </View>
-    </MotiView>
+    </View>
   );
 
   const renderItem = ({ item, index }: { item: any; index: number }) =>
@@ -429,11 +432,9 @@ export default function OrderScreen() {
     );
   }
 
-  /* ---------------- Rendu principal ---------------- */
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: CARD_BG }}>
       <View style={styles.container}>
-        {/* Étapes */}
         <View style={styles.steps}>
           <Step title="Panier" index={1} currentStep={currentStep} />
           <View style={styles.stepLine} />
@@ -444,7 +445,6 @@ export default function OrderScreen() {
           <Step title="Paiement" index={4} currentStep={currentStep} />
         </View>
 
-        {/* Contenu */}
         <View style={styles.contentArea}>
           {currentStep === 1 ? (
             <FlatList
@@ -473,7 +473,6 @@ export default function OrderScreen() {
           )}
         </View>
 
-        {/* Footer */}
         <View style={styles.footer}>
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Total à payer :</Text>
@@ -483,18 +482,35 @@ export default function OrderScreen() {
           </View>
           <View style={styles.navButtons}>
             {currentStep > 1 && (
-              <TouchableOpacity style={styles.backBtn} onPress={prevStep}>
+              <TouchableOpacity
+                style={styles.backBtn}
+                onPress={prevStep}
+                disabled={isSubmitting}
+              >
                 <Ionicons
                   name="chevron-back-outline"
                   size={20}
-                  color={TEXT_COLOR_PRIMARY}
+                  color={isSubmitting ? '#cccccc' : TEXT_COLOR_PRIMARY}
                 />
-                <Text style={styles.backBtnText}>Retour</Text>
+                <Text
+                  style={[
+                    styles.backBtnText,
+                    isSubmitting && { color: '#cccccc' },
+                  ]}
+                >
+                  Retour
+                </Text>
               </TouchableOpacity>
             )}
             <GradientButton
               onPress={nextStep}
-              title={currentStep === 4 ? 'Payer la Commande' : 'Continuer'}
+              title={
+                isSubmitting
+                  ? 'Traitement...'
+                  : currentStep === 4
+                  ? 'Payer la Commande'
+                  : 'Continuer'
+              }
               colors={
                 currentStep === 4
                   ? [ACCENT_COLOR, PRIMARY_COLOR]
@@ -503,17 +519,34 @@ export default function OrderScreen() {
               style={[
                 styles.nextBtnContainer,
                 currentStep === 1 ? { marginLeft: 0 } : { marginLeft: 10 },
+                isSubmitting && { opacity: 0.6 },
               ]}
               textStyle={styles.nextBtnText}
             />
           </View>
         </View>
+
+        {isSubmitting && (
+          <View style={styles.loadingOverlay}>
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={PRIMARY_COLOR} />
+              <Text style={styles.loadingText}>Traitement en cours...</Text>
+            </View>
+          </View>
+        )}
       </View>
+
+      <QRModal
+        visible={VisibleModal}
+        onClose={() => {
+          SetVisibleModale(false), setVisible(false);
+        }}
+        value={selectedId}
+      />
     </SafeAreaView>
   );
 }
 
-/* ---------------- Styles ---------------- */
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BG_COLOR },
   contentArea: { flex: 1, paddingHorizontal: 15 },
@@ -675,4 +708,35 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   nextBtnText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingContainer: {
+    backgroundColor: CARD_BG,
+    borderRadius: 12,
+    padding: 24,
+    alignItems: 'center',
+    minWidth: 200,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: PRIMARY_COLOR,
+    fontWeight: '600',
+  },
 });

@@ -2,8 +2,10 @@ import { db } from '@/firebase/config';
 import {
   addDoc,
   collection,
+  doc,
   getDocs,
   serverTimestamp,
+  writeBatch,
 } from 'firebase/firestore';
 
 export interface PaymentMethod {
@@ -56,19 +58,49 @@ export const getPaymentMethods = async (): Promise<PaymentMethod[]> => {
   }
 };
 
-export const createOrder = async (order: Order) => {
+export const createOrderWithReservations = async (order: Order) => {
   try {
-    const colRef = collection(db, 'orders');
-    const docRef = await addDoc(colRef, {
+    const batch = writeBatch(db);
+
+    // 1️⃣ Référence du nouvel order
+    const orderRef = doc(collection(db, 'orders'));
+    batch.set(orderRef, {
       ...order,
-      status: 'pending', // statut initial
-      createdAt: serverTimestamp(), // timestamp serveur
+      status: 'payer',
+      createdAt: serverTimestamp(),
+    });
+    const id = orderRef.id;
+
+    // 2️⃣ Création des reservations
+    const reservationsRef = collection(db, 'reservation');
+    order.items.forEach((item) => {
+      const reservationRef = doc(reservationsRef); // chaque doc a son ID auto-généré
+      batch.set(reservationRef, {
+        orderId: orderRef.id,
+        productId: item.productId,
+        title: item.title,
+        image: item.image,
+        price: item.price,
+        quantity: item.quantity,
+        status: 'réservé',
+        userId: order.userId,
+        vendorId: order.vendorId,
+        createdAt: serverTimestamp(),
+      });
     });
 
-    console.log(`✅ Order créé avec l'ID : ${docRef.id}`);
-    return docRef.id;
+    // 3️⃣ Commit du batch
+    await batch.commit();
+
+    console.log(orderRef.id);
+    return {
+      success: true,
+      data: orderRef.id,
+    };
   } catch (error) {
-    console.error("❌ Erreur lors de la création de l'ordre :", error);
-    throw error;
+    return {
+      success: false,
+      data: 'ereor',
+    };
   }
 };

@@ -7,8 +7,6 @@ import {
   TouchableOpacity,
   Platform,
   ScrollView,
-  Alert,
-  Modal,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { ArrowLeft, ShoppingCart } from 'lucide-react-native';
@@ -22,11 +20,16 @@ import {
   getCartCountByVendor,
 } from '@/utils/cartStorage';
 import { useCart } from '@/components/contexts/CartContext';
-import OrderScreen from '@/components/orderScreen';
-import { Ionicons } from '@expo/vector-icons';
 import OrderModal from '@/components/orderModal';
 
 const { height, width } = Dimensions.get('window');
+
+const PRIMARY_COLOR = '#4c51bf';
+const ACCENT_COLOR = '#ec4899';
+const BG_COLOR = '#f9fafb';
+const CARD_BG = '#ffffff';
+const TEXT_COLOR_PRIMARY = '#1f2937';
+const TEXT_COLOR_SECONDARY = '#6b7280';
 
 export default function DetailsScreen() {
   const router = useRouter();
@@ -43,7 +46,9 @@ export default function DetailsScreen() {
   const [visible, setVisible] = useState(false);
 
   const iframeHeight = Math.min(height * 0.32, 320);
-  const headerTitle = status ? '🟢 Live en cours' : '🎬 Rediffusion';
+  const isLive = status === 'live';
+  const headerTitle = isLive ? 'En direct' : 'Rediffusion';
+  const statusBadgeColor = isLive ? '#10b981' : '#8b5cf6';
 
   const html = `
     <!DOCTYPE html>
@@ -74,58 +79,76 @@ export default function DetailsScreen() {
     }
   }, [vendorId]);
 
+  const handleBackPress = () => {
+    clearCartByVendor(vendorId);
+    router.replace('/(client)');
+  };
+
   return (
     <>
       <OrderModal setVisible={setVisible} visible={visible} />
       <SafeAreaView style={styles.safeArea}>
-        {/* En-tête dégradé moderne */}
         <LinearGradient
-          colors={['#fce7f3', '#fff']}
+          colors={[CARD_BG, BG_COLOR]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.header}
         >
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => {
-              router.replace('/(client)');
-              clearCartByVendor(vendorId);
-            }}
+            onPress={handleBackPress}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <ArrowLeft color="#EC4899" size={22} />
+            <ArrowLeft color={ACCENT_COLOR} size={24} />
           </TouchableOpacity>
 
-          <Text style={styles.title}>{headerTitle}</Text>
+          <View style={styles.titleContainer}>
+            <View
+              style={[
+                styles.statusBadge,
+                { backgroundColor: statusBadgeColor },
+              ]}
+            >
+              <View style={styles.statusDot} />
+              <Text style={styles.statusText}>{headerTitle}</Text>
+            </View>
+          </View>
 
           <TouchableOpacity
             onPress={() => setVisible(true)}
             style={styles.cartButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <ShoppingCart size={22} color="#EC4899" />
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{cartCount}</Text>
-            </View>
+            <ShoppingCart size={24} color={ACCENT_COLOR} />
+            {cartCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{cartCount}</Text>
+              </View>
+            )}
           </TouchableOpacity>
         </LinearGradient>
 
         <ScrollView
           style={styles.container}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 50 }}
+          contentContainerStyle={styles.scrollContent}
         >
-          {/* Vidéo */}
-          <View style={[styles.webviewContainer, { height: iframeHeight }]}>
-            <WebView
-              originWhitelist={['*']}
-              source={{ html }}
-              style={styles.webview}
-              javaScriptEnabled
-              domStorageEnabled
-              startInLoadingState
-            />
+          <View style={styles.videoSection}>
+            <View style={[styles.webviewContainer, { height: iframeHeight }]}>
+              <WebView
+                originWhitelist={['*']}
+                source={{ html }}
+                style={styles.webview}
+                javaScriptEnabled
+                domStorageEnabled
+                startInLoadingState
+              />
+            </View>
           </View>
 
-          <ProductGroupList vendorId={vendorId} />
+          <View style={styles.productsSection}>
+            <ProductGroupList vendorId={vendorId} />
+          </View>
         </ScrollView>
       </SafeAreaView>
     </>
@@ -135,103 +158,106 @@ export default function DetailsScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFF',
+    backgroundColor: CARD_BG,
   },
   container: {
     flex: 1,
-    backgroundColor: '#fafafa',
+    backgroundColor: BG_COLOR,
+  },
+  scrollContent: {
+    paddingBottom: 32,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: Platform.OS === 'ios' ? 14 : 12,
+    paddingVertical: Platform.OS === 'ios' ? 16 : 14,
     paddingHorizontal: 16,
-    elevation: 4,
+    backgroundColor: CARD_BG,
     shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    backgroundColor: '#fff',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 3,
   },
   backButton: {
-    padding: 6,
-    backgroundColor: '#fdf2f8',
+    width: 44,
+    height: 44,
     borderRadius: 12,
-  },
-  title: {
-    color: '#EC4899',
-    fontSize: 18,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  headerModal: {
-    backgroundColor: '#ec4899',
-    paddingTop: 50,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
+    backgroundColor: '#fdf2f8',
+    justifyContent: 'center',
     alignItems: 'center',
+    transitionProperty: 'background-color 0.2s',
   },
-  headerTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 10,
-  },
-  content: {
+  titleContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: CARD_BG,
+  },
+  statusText: {
+    color: CARD_BG,
+    fontSize: 14,
+    fontWeight: '600',
   },
   cartButton: {
-    position: 'relative',
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     backgroundColor: '#fdf2f8',
-    padding: 8,
-    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
   },
   badge: {
     position: 'absolute',
-    top: -4,
-    right: -4,
+    top: -6,
+    right: -6,
     backgroundColor: '#f43f5e',
-    borderRadius: 8,
-    minWidth: 16,
-    height: 16,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 3,
+    borderWidth: 2,
+    borderColor: CARD_BG,
   },
   badgeText: {
-    color: '#FFF',
-    fontSize: 10,
+    color: CARD_BG,
+    fontSize: 11,
     fontWeight: '700',
   },
+  videoSection: {
+    paddingHorizontal: 12,
+    paddingTop: 12,
+  },
   webviewContainer: {
-    marginHorizontal: 12,
+    borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: '#000',
-    marginTop: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
   },
   webview: {
     flex: 1,
   },
-  sectionHeader: {
-    marginTop: 20,
-    paddingHorizontal: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  sectionSubtitle: {
-    fontSize: 13,
-    color: '#6b7280',
+  productsSection: {
+    paddingTop: 16,
   },
 });
