@@ -1,7 +1,7 @@
 export interface User {
   name: string;
   email?: string;
-  role?: 'client' | 'vendor';
+  role?: 'client' | 'vendor' | 'livrer';
   phone?: string;
   createdAt?: any;
   photoURL?: string;
@@ -11,4 +11,5 @@ export interface User {
     emailPassword?: boolean;
   };
   password?: string;
+  vendorId?: string;
 }

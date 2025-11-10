@@ -263,7 +263,7 @@ export default function Register(): JSX.Element {
         email,
         phone,
         password,
-        role: 'client',
+        role: 'livrer',
         authProviders: { emailPassword: true },
       });
       if (response.success) {

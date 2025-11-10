@@ -21,6 +21,8 @@ export default function Index() {
           if (role === 'vendor') {
             console.log('➡️ Redirection vers Vendor');
             router.replace('/(vendor)');
+          } else if (role === 'livrer') {
+            router.replace('/(livrer)');
           } else {
             console.log('➡️ Redirection vers Client');
             router.replace('/(client)');

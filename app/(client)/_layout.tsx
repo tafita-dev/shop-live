@@ -9,7 +9,13 @@ import {
   Animated,
   TouchableOpacity,
 } from 'react-native';
-import { Appbar, TouchableRipple } from 'react-native-paper';
+import {
+  Appbar,
+  TouchableRipple,
+  Drawer as PaperDrawer,
+  Portal,
+  Modal,
+} from 'react-native-paper';
 import { useRouter, Slot, useSegments } from 'expo-router';
 import {
   User,
@@ -19,15 +25,12 @@ import {
   Video,
   LogOut,
 } from 'lucide-react-native';
-import {
-  DrawerLayout,
-  GestureHandlerRootView,
-} from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { authStorage, fetchFirebaseUserInfo } from '@/utils/authStorage';
 import { User as UserTypes } from '@/types/user';
 import ProtectUserRole from '@/components/ProtectUserRole';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 const { width } = Dimensions.get('window');
 
@@ -47,15 +50,17 @@ export default function TabsLayout() {
   });
 
   const router = useRouter();
-  const drawerRef = React.useRef<DrawerLayout>(null);
+  const [drawerVisible, setDrawerVisible] = React.useState(false);
   const modalAnim = React.useRef(new Animated.Value(0)).current;
   const [showModal, setShowModal] = React.useState(false);
-
   const [activeTab, setActiveTab] = React.useState<
     'home' | 'profile' | 'reservation'
   >('home');
   const indicatorAnim = React.useRef(new Animated.Value(0)).current;
   const segments = useSegments();
+
+  const openDrawer = () => setDrawerVisible(true);
+  const closeDrawer = () => setDrawerVisible(false);
 
   const loadUserData = async () => {
     const data = await fetchFirebaseUserInfo();
@@ -103,7 +108,7 @@ export default function TabsLayout() {
     }).start(() => {
       setShowModal(false);
       authStorage.clearAuthData();
-      drawerRef.current?.closeDrawer();
+      closeDrawer();
       router.replace('/(auth)/login');
     });
   };
@@ -117,11 +122,11 @@ export default function TabsLayout() {
     }).start();
     const path = `/(client)/${tab === 'home' ? '' : tab}` as const;
     router.replace(path as any);
-    drawerRef.current?.closeDrawer();
+    closeDrawer();
   };
 
   const openModal = () => {
-    drawerRef.current?.closeDrawer();
+    closeDrawer();
     setShowModal(true);
     Animated.timing(modalAnim, {
       toValue: 1,
@@ -136,29 +141,28 @@ export default function TabsLayout() {
       duration: 150,
       useNativeDriver: true,
     }).start(() => setShowModal(false));
-    drawerRef.current?.openDrawer();
   };
 
   const renderDrawer = () => (
-    <SafeAreaView style={{ flex: 1 }}>
-      <LinearGradient
-        colors={['#FFF', '#F3F4F6']}
-        style={styles.drawerContainer}
+    <Portal>
+      <Modal
+        visible={drawerVisible}
+        onDismiss={closeDrawer}
+        contentContainerStyle={styles.drawerContainer}
       >
         <View style={styles.profileSection}>
           <Image
             source={{
-              uri:
-                userInfo && userInfo.photoURL
-                  ? userInfo.photoURL
-                  : 'https://res.cloudinary.com/dfywekuna/image/upload/v1736843708/20171206_01_jx8oyo.jpg',
+              uri: userInfo.photoURL
+                ? userInfo.photoURL
+                : 'https://res.cloudinary.com/dfywekuna/image/upload/v1736843708/20171206_01_jx8oyo.jpg',
             }}
             style={styles.avatar}
           />
           <Text style={styles.userName}>{userInfo.name || 'Utilisateur'}</Text>
         </View>
 
-        <View style={styles.drawerMenu}>
+        <PaperDrawer.Section title="Menu">
           {[
             { label: 'Live video', icon: Video, route: '/(client)' as const },
             {
@@ -172,172 +176,143 @@ export default function TabsLayout() {
               route: '/(client)/reservation' as const,
             },
           ].map((item) => (
-            <TouchableRipple
+            <PaperDrawer.Item
               key={item.label}
-              style={styles.drawerItemMini}
-              rippleColor="rgba(24,119,242,0.1)"
+              label={item.label}
+              icon={() => <item.icon size={22} color="#EC4899" />}
               onPress={() => {
                 router.replace(item.route);
-                drawerRef.current?.closeDrawer();
+                closeDrawer();
               }}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <item.icon size={22} color="#EC4899" />
-                <Text style={[styles.drawerText, { marginLeft: 12 }]}>
-                  {item.label}
-                </Text>
-              </View>
-            </TouchableRipple>
+            />
           ))}
 
-          <View style={styles.separator} />
-
-          <TouchableRipple
-            style={styles.drawerItemMini}
-            rippleColor="rgba(255,0,0,0.1)"
+          <PaperDrawer.Item
+            label="Déconnexion"
+            icon={() => <LogOut size={22} color="#EC4899" />}
             onPress={openModal}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <LogOut size={22} color="#EC4899" />
-              <Text
-                style={[
-                  styles.drawerText,
-                  { color: '#EC4899', marginLeft: 12 },
-                ]}
-              >
-                Déconnexion
-              </Text>
-            </View>
-          </TouchableRipple>
-        </View>
-      </LinearGradient>
-    </SafeAreaView>
+          />
+        </PaperDrawer.Section>
+      </Modal>
+    </Portal>
   );
 
   return (
     <ProtectUserRole role="client">
-      <GestureHandlerRootView>
-        <DrawerLayout
-          ref={drawerRef}
-          drawerWidth={300}
-          drawerPosition="right"
-          drawerBackgroundColor="#FFF"
-          renderNavigationView={renderDrawer}
-        >
-          <LinearGradient colors={['#FFF', '#F9FAFB']} style={styles.container}>
-            <Appbar.Header style={styles.header}>
-              <View style={styles.logoContainer}>
-                <Image
-                  source={require('../../assets/images/icon.png')}
-                  style={styles.logo}
-                  resizeMode="contain"
-                />
-              </View>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        {renderDrawer()}
 
-              <View style={styles.iconsRight}>
-                <TouchableRipple style={styles.iconButton}>
-                  <View style={{ position: 'relative' }}>
-                    <Bell size={28} color="#111827" />
-                    <View style={styles.badge} />
-                  </View>
-                </TouchableRipple>
-
-                <TouchableRipple
-                  style={styles.iconButton}
-                  onPress={() => drawerRef.current?.openDrawer()}
-                >
-                  <Menu size={30} color="#111827" />
-                </TouchableRipple>
-              </View>
-            </Appbar.Header>
-
-            <LinearGradient colors={['#FFF', '#F3F4F6']} style={styles.tabBar}>
-              {['home', 'profile', 'reservation'].map((tab, index) => (
-                <TouchableRipple
-                  key={tab}
-                  style={styles.tabButtonMini}
-                  rippleColor="rgba(24,119,242,0.2)"
-                  onPress={() =>
-                    handleTabPress(tab as 'home' | 'profile' | 'reservation')
-                  }
-                >
-                  <View style={{ alignItems: 'center' }}>
-                    {tab === 'home' && (
-                      <Video
-                        size={26}
-                        color={activeTab === 'home' ? '#EC4899' : '#8e8e93'}
-                      />
-                    )}
-                    {tab === 'reservation' && (
-                      <CalendarCheck
-                        size={26}
-                        color={
-                          activeTab === 'reservation' ? '#EC4899' : '#8e8e93'
-                        }
-                      />
-                    )}
-                    {tab === 'profile' && (
-                      <User
-                        size={26}
-                        color={activeTab === 'profile' ? '#EC4899' : '#8e8e93'}
-                      />
-                    )}
-                  </View>
-                </TouchableRipple>
-              ))}
-            </LinearGradient>
-
-            <Animated.View
-              style={[
-                styles.activeIndicator,
-                {
-                  transform: [
-                    {
-                      translateX: indicatorAnim.interpolate({
-                        inputRange: [0, 1, 2],
-                        outputRange: [0, width / 3, (width / 3) * 2],
-                      }),
-                    },
-                  ],
-                },
-              ]}
-            />
-
-            <View style={styles.content}>
-              <Slot />
+        <LinearGradient colors={['#FFF', '#F9FAFB']} style={styles.container}>
+          <Appbar.Header style={styles.header}>
+            <View style={styles.logoContainer}>
+              <Image
+                source={require('../../assets/images/icon.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
             </View>
+
+            <View style={styles.iconsRight}>
+              <TouchableRipple style={styles.iconButton}>
+                <View style={{ position: 'relative' }}>
+                  <Bell size={28} color="#111827" />
+                  <View style={styles.badge} />
+                </View>
+              </TouchableRipple>
+
+              <TouchableRipple style={styles.iconButton} onPress={openDrawer}>
+                <Menu size={30} color="#111827" />
+              </TouchableRipple>
+            </View>
+          </Appbar.Header>
+
+          <LinearGradient colors={['#FFF', '#F3F4F6']} style={styles.tabBar}>
+            {['home', 'profile', 'reservation'].map((tab, index) => (
+              <TouchableRipple
+                key={tab}
+                style={styles.tabButtonMini}
+                rippleColor="rgba(24,119,242,0.2)"
+                onPress={() =>
+                  handleTabPress(tab as 'home' | 'profile' | 'reservation')
+                }
+              >
+                <View style={{ alignItems: 'center' }}>
+                  {tab === 'home' && (
+                    <Video
+                      size={26}
+                      color={activeTab === 'home' ? '#EC4899' : '#8e8e93'}
+                    />
+                  )}
+                  {tab === 'reservation' && (
+                    <CalendarCheck
+                      size={26}
+                      color={
+                        activeTab === 'reservation' ? '#EC4899' : '#8e8e93'
+                      }
+                    />
+                  )}
+                  {tab === 'profile' && (
+                    <User
+                      size={26}
+                      color={activeTab === 'profile' ? '#EC4899' : '#8e8e93'}
+                    />
+                  )}
+                </View>
+              </TouchableRipple>
+            ))}
           </LinearGradient>
-        </DrawerLayout>
-      </GestureHandlerRootView>
-      {showModal && (
-        <Animated.View
-          style={[
-            styles.modalOverlay,
-            { opacity: modalAnim, transform: [{ scale: modalAnim }] },
-          ]}
-        >
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Déconnexion</Text>
-            <Text style={styles.modalMessage}>
-              Voulez-vous vraiment vous déconnecter ?
-            </Text>
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={closeModal}
-              >
-                <Text style={styles.buttonText}>Non</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.confirmButton]}
-                onPress={handleLogout}
-              >
-                <Text style={styles.buttonText}>Oui</Text>
-              </TouchableOpacity>
-            </View>
+
+          <Animated.View
+            style={[
+              styles.activeIndicator,
+              {
+                transform: [
+                  {
+                    translateX: indicatorAnim.interpolate({
+                      inputRange: [0, 1, 2],
+                      outputRange: [0, width / 3, (width / 3) * 2],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          />
+
+          <View style={styles.content}>
+            <Slot />
           </View>
-        </Animated.View>
-      )}
+        </LinearGradient>
+
+        {showModal && (
+          <Animated.View
+            style={[
+              styles.modalOverlay,
+              { opacity: modalAnim, transform: [{ scale: modalAnim }] },
+            ]}
+          >
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Déconnexion</Text>
+              <Text style={styles.modalMessage}>
+                Voulez-vous vraiment vous déconnecter ?
+              </Text>
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={closeModal}
+                >
+                  <Text style={styles.buttonText}>Non</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.confirmButton]}
+                  onPress={handleLogout}
+                >
+                  <Text style={styles.buttonText}>Oui</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Animated.View>
+        )}
+      </GestureHandlerRootView>
     </ProtectUserRole>
   );
 }
@@ -346,9 +321,12 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   logo: { width: 60, height: 60 },
   drawerContainer: {
-    flex: 1,
+    backgroundColor: '#FFF',
     paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingVertical: 40,
+    width: '75%',
+    alignSelf: 'flex-end',
+    height: '100%',
   },
   profileSection: { alignItems: 'center', marginBottom: 30 },
   avatar: {
@@ -363,21 +341,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#111827',
     marginTop: 10,
-  },
-  drawerMenu: { flex: 1 },
-  drawerItemMini: {
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    borderRadius: 12,
-    backgroundColor: '#FFF',
-    marginBottom: 8,
-    elevation: 2,
-  },
-  drawerText: { fontSize: 15, color: '#111827', fontWeight: '500' },
-  separator: {
-    height: 1,
-    backgroundColor: '#E5E7EB',
-    marginVertical: 15,
   },
   header: {
     backgroundColor: '#FFF',

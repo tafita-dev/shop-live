@@ -12,7 +12,7 @@ import { useRouter } from 'expo-router';
 import { authStorage } from '@/utils/authStorage';
 
 interface ProtectUserRoleProps {
-  role: 'vendor' | 'client';
+  role: 'vendor' | 'client' | 'livrer';
   children: React.ReactNode;
 }
 
@@ -23,10 +23,9 @@ export default function ProtectUserRole({
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [userRoleDetected, setUserRoleDetected] = useState<
-    'vendor' | 'client' | null
+    'vendor' | 'client' | 'livrer' | null
   >(null);
   const modalAnim = useRef(new Animated.Value(0)).current;
-
   const router = useRouter();
 
   useEffect(() => {
@@ -44,14 +43,15 @@ export default function ProtectUserRole({
           return;
         }
 
-        // Valider que userRole est bien 'vendor' ou 'client'
-        if (userRole !== 'vendor' && userRole !== 'client') {
+        // ✅ Vérifie que le rôle est valide
+        if (!['vendor', 'client', 'livrer'].includes(userRole)) {
           router.replace('/(auth)/login');
           return;
         }
 
+        // ✅ Si l'utilisateur a un rôle différent, on bloque et affiche le modal
         if (userRole !== role) {
-          setUserRoleDetected(userRole); // ✅ maintenant TypeScript est content
+          setUserRoleDetected(userRole as 'vendor' | 'client' | 'livrer');
           setLoading(false);
           setShowModal(true);
 
@@ -64,7 +64,7 @@ export default function ProtectUserRole({
           return;
         }
 
-        // Tout est bon → affiche le contenu
+        // ✅ Tout est bon → on peut afficher le contenu
         setLoading(false);
       } catch (error) {
         console.error('Erreur Auth:', error);
@@ -82,7 +82,9 @@ export default function ProtectUserRole({
   const handleRedirect = (redirect: boolean) => {
     setShowModal(false);
     if (redirect) {
-      router.replace(userRoleDetected === 'vendor' ? '/(vendor)' : '/(client)');
+      if (userRoleDetected === 'vendor') router.replace('/(vendor)');
+      else if (userRoleDetected === 'client') router.replace('/(client)');
+      else if (userRoleDetected === 'livrer') router.replace('/(livrer)');
     } else {
       authStorage.clearAuthData();
       router.replace('/(auth)/login');
@@ -92,7 +94,7 @@ export default function ProtectUserRole({
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#fff" />
+        <ActivityIndicator size="large" color="#006dff" />
       </View>
     );
   }
@@ -131,7 +133,7 @@ export default function ProtectUserRole({
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#006dff',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -161,7 +163,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#EC4899',
+    color: '#006dff',
     marginBottom: 10,
     textAlign: 'center',
   },
@@ -186,7 +188,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#6B7280',
   },
   confirmButton: {
-    backgroundColor: '#EC4899',
+    backgroundColor: '#006dff',
   },
   buttonText: {
     color: '#fff',

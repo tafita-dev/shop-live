@@ -260,15 +260,22 @@ export default function Login() {
               <FacebookLogin />
             </View>
 
-            {/* Lien d’inscription */}
             <TouchableOpacity
-              style={styles.registerLink}
+              style={styles.mainButton}
               onPress={() => router.push('/(auth)/register')}
+              disabled={loading}
             >
-              <Text style={styles.registerText}>
-                Pas encore de compte ?{' '}
-                <Text style={styles.registerHighlight}>S’inscrire</Text>
-              </Text>
+              <LinearGradient
+                colors={[PRIMARY_COLOR, ACCENT_COLOR]}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                style={[
+                  styles.mainButtonGradient,
+                  loading && styles.mainButtonDisabled,
+                ]}
+              >
+                <Text style={styles.mainButtonText}>Créé un compte </Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
           <View style={{ height: 30 }} />

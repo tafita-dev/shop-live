@@ -13,7 +13,6 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { FontAwesome } from '@expo/vector-icons';
 import Modal from 'react-native-modal';
 import { Eye, ShoppingCart } from 'lucide-react-native';
 import { addToCart } from '@/utils/cartStorage';
@@ -66,20 +65,27 @@ export const ProductGroupList: React.FC<interfaceProps> = ({ vendorId }) => {
     return (
       <TouchableOpacity
         key={cat?.id ?? 'all'}
-        style={[styles.categoryCard, isSelected && styles.selectedCard]}
-        activeOpacity={0.8}
+        style={styles.categoryCard}
+        activeOpacity={0.7}
         onPress={() =>
           cat ? fetchProductsByCategory(cat.id ?? '') : fetchAllProducts()
         }
       >
-        <Image
-          source={{
-            uri:
-              cat?.image ??
-              'https://res.cloudinary.com/dfywekuna/image/upload/v1761829682/bq4q3bfkaomjft08oyit.jpg',
-          }}
-          style={styles.categoryImage}
-        />
+        <View
+          style={[
+            styles.categoryImageWrapper,
+            isSelected && styles.selectedImageWrapper,
+          ]}
+        >
+          <Image
+            source={{
+              uri:
+                cat?.image ??
+                'https://res.cloudinary.com/dfywekuna/image/upload/v1761829682/bq4q3bfkaomjft08oyit.jpg',
+            }}
+            style={styles.categoryImage}
+          />
+        </View>
         <Text style={[styles.categoryName, isSelected && styles.selectedText]}>
           {cat?.name ?? 'Tous'}
         </Text>
@@ -95,39 +101,47 @@ export const ProductGroupList: React.FC<interfaceProps> = ({ vendorId }) => {
   const handleAddToCart = async (product: Product) => {
     await addToCart(vendorId, product);
     await refreshCart(vendorId);
-    Alert.alert('Info', `Produit ${product.title} ajouté au panier 🛒`);
+    Alert.alert('Info', `Produit ${product.title} ajouté au panier`);
   };
 
   const renderProduct = (product: Product) => (
     <View key={product.id} style={styles.productCard}>
-      <Image source={{ uri: product.image }} style={styles.productImage} />
-      <Text style={styles.productTitle} numberOfLines={1}>
-        {product.title}
-      </Text>
-      <Text style={styles.productCode}>Code : {product.code ?? 'N/A'}</Text>
-      <Text style={styles.productPrice}>{product.price} Ar</Text>
+      <View style={styles.productImageContainer}>
+        <Image source={{ uri: product.image }} style={styles.productImage} />
+      </View>
 
-      <View style={styles.cardFooter}>
-        <TouchableOpacity
-          style={styles.detailButton}
-          onPress={() => openModal(product)}
-        >
-          <Eye color="#fff" size={18} />
-        </TouchableOpacity>
+      <View style={styles.productInfo}>
+        <Text style={styles.productTitle} numberOfLines={2}>
+          {product.title}
+        </Text>
+        <Text style={styles.productCode}>Code: {product.code ?? 'N/A'}</Text>
 
-        <TouchableOpacity
-          style={styles.cartButton}
-          onPress={() => handleAddToCart(product)}
-        >
-          <ShoppingCart size={18} color="#fff" />
-        </TouchableOpacity>
+        <View style={styles.productFooter}>
+          <Text style={styles.productPrice}>{product.price} Ar</Text>
+
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => openModal(product)}
+            >
+              <Eye color="#64748b" size={20} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.cartButton}
+              onPress={() => handleAddToCart(product)}
+            >
+              <ShoppingCart size={18} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
     </View>
   );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>🛍️ Catégories</Text>
+      <Text style={styles.sectionTitle}>Catégories</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -137,14 +151,16 @@ export const ProductGroupList: React.FC<interfaceProps> = ({ vendorId }) => {
         {categories.map((cat) => renderCategory(cat))}
       </ScrollView>
 
-      <Text style={styles.sectionTitle}>📦 Produits</Text>
+      <Text style={styles.sectionTitle}>Produits</Text>
 
       {loading ? (
-        <ActivityIndicator
-          size="large"
-          color="#007bff"
-          style={{ marginTop: 30 }}
-        />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#EC4899" />
+        </View>
+      ) : products.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>Aucun produit disponible</Text>
+        </View>
       ) : (
         <ScrollView
           horizontal
@@ -155,29 +171,38 @@ export const ProductGroupList: React.FC<interfaceProps> = ({ vendorId }) => {
         </ScrollView>
       )}
 
-      {/* Modal produit */}
       <Modal
         isVisible={modalVisible}
         onBackdropPress={() => setModalVisible(false)}
-        animationIn="zoomIn"
-        animationOut="zoomOut"
+        animationIn="slideInUp"
+        animationOut="slideOutDown"
+        backdropOpacity={0.6}
       >
         <View style={styles.modalContent}>
           {selectedProduct && (
             <>
-              <Image
-                source={{ uri: selectedProduct.image }}
-                style={styles.modalImage}
-              />
-              <Text style={styles.modalTitle}>{selectedProduct.title}</Text>
-              <Text style={styles.modalCode}>
-                Code : {selectedProduct.code}
-              </Text>
-              <Text style={styles.modalPrice}>{selectedProduct.price} Ar</Text>
-              <Text style={styles.modalDescription}>
-                {selectedProduct.description ??
-                  'Aucune description disponible.'}
-              </Text>
+              <View style={styles.modalImageContainer}>
+                <Image
+                  source={{ uri: selectedProduct.image }}
+                  style={styles.modalImage}
+                />
+              </View>
+
+              <View style={styles.modalInfo}>
+                <Text style={styles.modalTitle}>{selectedProduct.title}</Text>
+                <Text style={styles.modalCode}>
+                  Code: {selectedProduct.code}
+                </Text>
+                <Text style={styles.modalPrice}>
+                  {selectedProduct.price} Ar
+                </Text>
+
+                {selectedProduct.description && (
+                  <Text style={styles.modalDescription}>
+                    {selectedProduct.description}
+                  </Text>
+                )}
+              </View>
 
               <TouchableOpacity
                 style={styles.closeButton}
@@ -194,120 +219,195 @@ export const ProductGroupList: React.FC<interfaceProps> = ({ vendorId }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8f9fa' },
+  container: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+  },
   sectionTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#222',
-    marginHorizontal: 15,
-    marginTop: 15,
-    marginBottom: 8,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1e293b',
+    marginHorizontal: 16,
+    marginTop: 20,
+    marginBottom: 12,
   },
   categoryContainer: {
-    paddingHorizontal: 10,
-    paddingVertical: 10,
+    paddingHorizontal: 12,
   },
   categoryCard: {
-    width: 90,
     alignItems: 'center',
+    marginHorizontal: 8,
+  },
+  categoryImageWrapper: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 3,
+    borderColor: '#e2e8f0',
+    padding: 3,
+    marginBottom: 8,
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 8,
-    marginRight: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
-    height: 100,
   },
-  selectedCard: {
-    borderWidth: 1.5,
+  selectedImageWrapper: {
     borderColor: '#EC4899',
+    borderWidth: 4,
   },
-  categoryImage: { width: 50, height: 50, borderRadius: 25, marginBottom: 5 },
-  categoryName: { fontSize: 13, fontWeight: '600', color: '#333' },
-  selectedText: { color: '#EC4899' },
-
+  categoryImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 37,
+  },
+  categoryName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#475569',
+    textAlign: 'center',
+    maxWidth: 80,
+  },
+  selectedText: {
+    color: '#EC4899',
+    fontWeight: '700',
+  },
   productList: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingBottom: 20,
-    flexDirection: 'row',
   },
   productCard: {
-    width: 160,
+    width: 150,
     backgroundColor: '#fff',
-    borderRadius: 14,
-    marginHorizontal: 8,
-    padding: 10,
+    borderRadius: 12,
+    marginHorizontal: 5,
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
     elevation: 3,
   },
-  productImage: { width: '100%', height: 90, borderRadius: 8 }, // 🔹 image plus petite
-  productTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#222',
-    marginTop: 8,
+  productImageContainer: {
+    width: '100%',
+    height: 110,
+    backgroundColor: '#f1f5f9',
   },
-  productCode: { fontSize: 12, color: '#666', marginTop: 3 },
+  productImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  productInfo: {
+    padding: 9,
+  },
+  productTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 2,
+    lineHeight: 18,
+  },
+  productCode: {
+    fontSize: 11,
+    color: '#94a3b8',
+    marginBottom: 8,
+  },
+  productFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   productPrice: {
     fontSize: 14,
     fontWeight: '700',
     color: '#EC4899',
-    marginTop: 5,
   },
-  cardFooter: {
+  actionButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 10,
+    gap: 6,
   },
-  detailButton: {
-    backgroundColor: '#010911ff',
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 6,
+  iconButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f1f5f9',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  detailText: { color: '#fff', fontSize: 12, fontWeight: '600' },
-  cartButton: { backgroundColor: '#EC4899', padding: 6, borderRadius: 6 },
-
+  cartButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#EC4899',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 15,
+    color: '#64748b',
+    fontWeight: '500',
+  },
   modalContent: {
     backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
+    borderRadius: 24,
+    overflow: 'hidden',
+    maxHeight: '100%',
+  },
+  modalImageContainer: {
+    width: '100%',
+    height: 280,
+    backgroundColor: '#f1f5f9',
   },
   modalImage: {
     width: '100%',
-    height: 200,
-    borderRadius: 12,
-    marginBottom: 15,
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  modalInfo: {
+    padding: 20,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: '700',
-    color: '#222',
+    color: '#1e293b',
     marginBottom: 8,
   },
-  modalCode: { fontSize: 14, color: '#666', marginBottom: 4 },
+  modalCode: {
+    fontSize: 14,
+    color: '#64748b',
+    marginBottom: 12,
+  },
   modalPrice: {
-    fontSize: 16,
+    fontSize: 24,
     color: '#EC4899',
-    fontWeight: 'bold',
-    marginBottom: 10,
+    fontWeight: '700',
+    marginBottom: 16,
   },
   modalDescription: {
-    fontSize: 14,
-    color: '#333',
-    textAlign: 'center',
-    marginBottom: 15,
+    fontSize: 15,
+    color: '#475569',
+    lineHeight: 22,
   },
   closeButton: {
     backgroundColor: '#EC4899',
-    paddingVertical: 10,
-    borderRadius: 10,
-    width: '60%',
+    paddingVertical: 16,
+    margin: 20,
+    marginTop: 0,
+    borderRadius: 12,
+    alignItems: 'center',
   },
-  closeText: { color: '#fff', fontWeight: '700', textAlign: 'center' },
+  closeText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 16,
+  },
 });
