@@ -136,7 +136,7 @@ export default function VendorProducts() {
       <Appbar.Header style={styles.appBar}>
         <Appbar.BackAction onPress={() => router.back()} color="#fff" />
         <Appbar.Content
-          title={`Mes Musiques ${categoryName}`}
+          title={`Mes  ${categoryName}`}
           titleStyle={styles.appBarTitle}
         />
         <TouchableOpacity

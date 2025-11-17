@@ -57,8 +57,7 @@
           "clientToken": "b8c730698cd6ab316e74dc66ebf6f89a",
           "displayName": "MYSTORE"
         }
-      ],
-      "expo-barcode-scanner"
+      ]
     ],
     "experiments": {
       "typedRoutes": true

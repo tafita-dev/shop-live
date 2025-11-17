@@ -12,4 +12,7 @@ export interface User {
   };
   password?: string;
   vendorId?: string;
+  status?: string;
+  fcmToken?: string;
+  id?: string;
 }

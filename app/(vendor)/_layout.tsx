@@ -26,6 +26,7 @@ import {
   Bell,
   Menu,
   LogOut,
+  Truck,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -52,7 +53,7 @@ export default function VendorLayout() {
   const modalAnim = React.useRef(new Animated.Value(0)).current;
   const [showModal, setShowModal] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<
-    'home' | 'categorie' | 'orders' | 'profile'
+    'home' | 'categorie' | 'orders' | 'profile' | 'LivrerManagement'
   >('home');
   const indicatorAnim = React.useRef(new Animated.Value(0)).current;
   const segments = useSegments();
@@ -82,6 +83,8 @@ export default function VendorLayout() {
         ? 2
         : currentSegment === 'profile'
         ? 3
+        : currentSegment === 'LivrerManagement'
+        ? 4
         : 0;
     setActiveTab(
       currentSegment === 'categorie'
@@ -90,6 +93,8 @@ export default function VendorLayout() {
         ? 'orders'
         : currentSegment === 'profile'
         ? 'profile'
+        : currentSegment === 'LivrerManagement'
+        ? 'LivrerManagement'
         : 'home',
     );
     Animated.spring(indicatorAnim, {
@@ -112,14 +117,25 @@ export default function VendorLayout() {
     });
   };
 
-  const handleTabPress = (tab: 'home' | 'categorie' | 'orders' | 'profile') => {
+  const handleTabPress = (
+    tab: 'home' | 'categorie' | 'orders' | 'profile' | 'LivrerManagement',
+  ) => {
     setActiveTab(tab);
-    const positions = { home: 0, categorie: 1, orders: 2, profile: 3 };
+    const positions = {
+      home: 0,
+      categorie: 1,
+      orders: 2,
+      profile: 3,
+      LivrerManagement: 4,
+    };
     Animated.spring(indicatorAnim, {
       toValue: positions[tab],
       useNativeDriver: true,
     }).start();
-    const path = `/(vendor)/${tab === 'home' ? '' : tab}` as const;
+    const path =
+      tab === 'LivrerManagement'
+        ? '/(vendorLivrer)/LivrerManagement'
+        : (`/(vendor)/${tab === 'home' ? '' : tab}` as const);
     router.replace(path as any);
     closeDrawer();
   };
@@ -182,7 +198,7 @@ export default function VendorLayout() {
 
             {
               label: 'Livreur',
-              icon: User,
+              icon: Truck,
               route: '/(vendorLivrer)/LivrerManagement' as const,
             },
           ].map((item) => (
@@ -237,44 +253,63 @@ export default function VendorLayout() {
           </Appbar.Header>
 
           <LinearGradient colors={['#FFF', '#F3F4F6']} style={styles.tabBar}>
-            {['home', 'categorie', 'orders', 'profile'].map((tab, index) => (
-              <TouchableRipple
-                key={tab}
-                style={styles.tabButtonMini}
-                onPress={() =>
-                  handleTabPress(
-                    tab as 'home' | 'categorie' | 'orders' | 'profile',
-                  )
-                }
-              >
-                <View style={{ alignItems: 'center' }}>
-                  {tab === 'home' && (
-                    <Home
-                      size={26}
-                      color={activeTab === 'home' ? '#EC4899' : '#8e8e93'}
-                    />
-                  )}
-                  {tab === 'categorie' && (
-                    <ShoppingBag
-                      size={26}
-                      color={activeTab === 'categorie' ? '#EC4899' : '#8e8e93'}
-                    />
-                  )}
-                  {tab === 'orders' && (
-                    <Clipboard
-                      size={26}
-                      color={activeTab === 'orders' ? '#EC4899' : '#8e8e93'}
-                    />
-                  )}
-                  {tab === 'profile' && (
-                    <User
-                      size={26}
-                      color={activeTab === 'profile' ? '#EC4899' : '#8e8e93'}
-                    />
-                  )}
-                </View>
-              </TouchableRipple>
-            ))}
+            {['home', 'categorie', 'orders', 'profile', 'LivrerManagement'].map(
+              (tab, index) => (
+                <TouchableRipple
+                  key={tab}
+                  style={styles.tabButtonMini}
+                  onPress={() =>
+                    handleTabPress(
+                      tab as
+                        | 'home'
+                        | 'categorie'
+                        | 'orders'
+                        | 'profile'
+                        | 'LivrerManagement',
+                    )
+                  }
+                >
+                  <View style={{ alignItems: 'center' }}>
+                    {tab === 'home' && (
+                      <Home
+                        size={26}
+                        color={activeTab === 'home' ? '#EC4899' : '#8e8e93'}
+                      />
+                    )}
+                    {tab === 'categorie' && (
+                      <ShoppingBag
+                        size={26}
+                        color={
+                          activeTab === 'categorie' ? '#EC4899' : '#8e8e93'
+                        }
+                      />
+                    )}
+                    {tab === 'orders' && (
+                      <Clipboard
+                        size={26}
+                        color={activeTab === 'orders' ? '#EC4899' : '#8e8e93'}
+                      />
+                    )}
+                    {tab === 'profile' && (
+                      <User
+                        size={26}
+                        color={activeTab === 'profile' ? '#EC4899' : '#8e8e93'}
+                      />
+                    )}
+                    {tab === 'LivrerManagement' && (
+                      <Truck
+                        size={26}
+                        color={
+                          activeTab === 'LivrerManagement'
+                            ? '#EC4899'
+                            : '#8e8e93'
+                        }
+                      />
+                    )}
+                  </View>
+                </TouchableRipple>
+              ),
+            )}
           </LinearGradient>
 
           <Animated.View
@@ -284,12 +319,13 @@ export default function VendorLayout() {
                 transform: [
                   {
                     translateX: indicatorAnim.interpolate({
-                      inputRange: [0, 1, 2, 3],
+                      inputRange: [0, 1, 2, 3, 4],
                       outputRange: [
                         0,
-                        width / 4,
-                        (width / 4) * 2,
-                        (width / 4) * 3,
+                        width / 5,
+                        (width / 5) * 2,
+                        (width / 5) * 3,
+                        (width / 5) * 4,
                       ],
                     }),
                   },

@@ -7,15 +7,22 @@ import {
   where,
   getDocs,
   updateDoc,
+  orderBy,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { User } from '@/types/user';
+import * as Notifications from 'expo-notifications';
+import { getFCMToken } from '@/app/api/Notification';
 
 export class UserClass {
   static createUser = async (userId: string, userData: User) => {
     try {
+      const token = await getFCMToken();
+      console.log('Expo Push Token:', token);
+
       await setDoc(doc(db, 'users', userId), {
         ...userData,
+        fcmToken: token,
         createdAt: serverTimestamp(),
       });
 
@@ -26,6 +33,34 @@ export class UserClass {
         message:
           error?.message ||
           'Une erreur est survenue lors de la création de l’utilisateur',
+      };
+    }
+  };
+
+  static getLivreursByVendor = async (vendorId: string) => {
+    try {
+      const usersRef = collection(db, 'users');
+      const q = query(
+        usersRef,
+        where('vendorId', '==', vendorId),
+        where('role', '==', 'livrer'),
+        orderBy('createdAt', 'desc'),
+      );
+      const querySnapshot = await getDocs(q);
+
+      const livreurs: User[] = [];
+      querySnapshot.forEach((doc) => {
+        livreurs.push({ ...(doc.data() as User), id: doc.id });
+      });
+      console.log(livreurs, 'milay');
+      return { success: true, data: livreurs };
+    } catch (error: any) {
+      console.log(error);
+      return {
+        success: false,
+        message:
+          error?.message ||
+          'Une erreur est survenue lors de la récupération des livreurs',
       };
     }
   };

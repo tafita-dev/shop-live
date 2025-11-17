@@ -16,8 +16,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Spinner from 'react-native-loading-spinner-overlay';
 import { Eye, EyeOff, User, Mail, Phone, Lock } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { auth } from '@/firebase/config';
+import {
+  createUserWithEmailAndPassword,
+  getAuth,
+  updateProfile,
+} from 'firebase/auth';
 import { formatFirebaseError } from '@/utils/fromater';
 import SuccessModal from '@/components/SuccesModal';
 import ErrorModal from '@/components/ErrorModal';
@@ -251,6 +254,7 @@ export default function Register(): JSX.Element {
 
     try {
       setLoading(true);
+      const auth = getAuth();
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
@@ -263,7 +267,7 @@ export default function Register(): JSX.Element {
         email,
         phone,
         password,
-        role: 'livrer',
+        role: 'vendor',
         authProviders: { emailPassword: true },
       });
       if (response.success) {
