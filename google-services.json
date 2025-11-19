@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "361884207411",
+    "project_id": "shoplive-9a270",
+    "storage_bucket": "shoplive-9a270.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:361884207411:android:489cd5ec2e50356d2ad646",
+        "android_client_info": {
+          "package_name": "com.tafita.live"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "361884207411-otgtqfvvmid6dgi0mdgvpokpoo1n5tlb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB6sC0z-N5RFWcAa1zwRC8cg482_a4QZxo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "361884207411-otgtqfvvmid6dgi0mdgvpokpoo1n5tlb.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

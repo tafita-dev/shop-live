@@ -6,7 +6,7 @@ import { Alert } from 'react-native';
  * Récupère le token Expo FCM pour l'appareil actuel.
  * @returns {Promise<string | null>} Token FCM ou null si non disponible
  */
-export async function getFCMToken(): Promise<string | null> {
+export const getFCMToken = async (): Promise<string | null> => {
   try {
     if (!Device.isDevice) {
       Alert.alert(
@@ -43,4 +43,4 @@ export async function getFCMToken(): Promise<string | null> {
     console.error('Erreur lors de la récupération du FCM token:', error);
     return null;
   }
-}
+};

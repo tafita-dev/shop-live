@@ -6,10 +6,9 @@ import {
   TouchableOpacity,
   Dimensions,
   Animated,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import { CameraView, Camera } from 'expo-camera';
 import {
   ScanLine,
   Flashlight,
@@ -17,18 +16,27 @@ import {
   X,
   CheckCircle2,
 } from 'lucide-react-native';
-import { BlurView } from 'expo-blur';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 const SCAN_AREA_SIZE = width * 0.7;
 
 export default function ScannerScreen() {
-  const [permission, requestPermission] = useCameraPermissions();
+  const [permission, setPermission] = useState(false);
   const [scanned, setScanned] = useState(false);
-  const [scannedData, setScannedData] = useState<string>('');
+  const [scannedData, setScannedData] = useState('');
   const [torch, setTorch] = useState(false);
+
   const scanLineAnim = useRef(new Animated.Value(0)).current;
 
+  // Demande permission seulement au lancement
+  useEffect(() => {
+    (async () => {
+      const { status } = await Camera.requestCameraPermissionsAsync();
+      setPermission(status === 'granted');
+    })();
+  }, []);
+
+  // Animation de ligne
   useEffect(() => {
     if (!scanned) {
       Animated.loop(
@@ -48,41 +56,39 @@ export default function ScannerScreen() {
     }
   }, [scanned]);
 
+  const askPermission = async () => {
+    const { status } = await Camera.requestCameraPermissionsAsync();
+    setPermission(status === 'granted');
+  };
+
+  // Si pas de permission → écran sécurisé
   if (!permission) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.loadingText}>Chargement...</Text>
-      </View>
-    );
-  }
-
-  if (!permission.granted) {
-    return (
       <SafeAreaView style={styles.centered}>
-        <View style={styles.permissionContainer}>
-          <ScanLine size={80} color="#3B82F6" strokeWidth={1.5} />
-          <Text style={styles.permissionTitle}>Accès à la caméra requis</Text>
-          <Text style={styles.permissionText}>
-            Nous avons besoin de votre permission pour scanner des QR codes
-          </Text>
-          <TouchableOpacity
-            style={styles.permissionButton}
-            onPress={requestPermission}
-          >
-            <Text style={styles.permissionButtonText}>Autoriser l'accès</Text>
-          </TouchableOpacity>
-        </View>
+        <ScanLine size={80} color="#3B82F6" strokeWidth={1.5} />
+        <Text style={styles.permissionTitle}>Accès à la caméra requis</Text>
+        <Text style={styles.permissionText}>
+          Nous avons besoin de votre permission pour scanner des QR codes
+        </Text>
+
+        <TouchableOpacity
+          style={styles.permissionButton}
+          onPress={askPermission}
+        >
+          <Text style={styles.permissionButtonText}>Autoriser l'accès</Text>
+        </TouchableOpacity>
       </SafeAreaView>
     );
   }
 
-  const handleBarcodeScanned = ({ data }: { data: string }) => {
-    if (scanned) return;
-    setScanned(true);
-    setScannedData(data);
+  const onScanned = ({ data }: any) => {
+    if (!scanned) {
+      setScanned(true);
+      setScannedData(data);
+    }
   };
 
-  const handleReset = () => {
+  const resetScan = () => {
     setScanned(false);
     setScannedData('');
   };
@@ -94,33 +100,37 @@ export default function ScannerScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Camera affichée SEULEMENT après permission validée → Évite CRASH */}
       <CameraView
         style={StyleSheet.absoluteFillObject}
         facing="back"
         enableTorch={torch}
-        onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
+        onBarcodeScanned={scanned ? undefined : onScanned}
         barcodeScannerSettings={{
           barcodeTypes: ['qr', 'ean13', 'ean8', 'code128', 'code39'],
         }}
       />
 
-      {/* Header */}
+      {/* HEADER SIMPLE (PAS DE BlurView → Évite crash Android) */}
       <SafeAreaView style={styles.header}>
-        <BlurView intensity={80} tint="dark" style={styles.headerBlur}>
+        <View style={styles.headerBox}>
           <Text style={styles.headerTitle}>Scanner QR Code</Text>
-        </BlurView>
+        </View>
       </SafeAreaView>
 
-      {/* Scan Area Overlay */}
+      {/* ZONE DE SCAN */}
       <View style={styles.overlay} pointerEvents="none">
         <View style={styles.overlayTop} />
         <View style={styles.overlayMiddle}>
           <View style={styles.overlaySide} />
           <View style={styles.scanArea}>
-            <View style={[styles.corner, styles.cornerTopLeft]} />
-            <View style={[styles.corner, styles.cornerTopRight]} />
-            <View style={[styles.corner, styles.cornerBottomLeft]} />
-            <View style={[styles.corner, styles.cornerBottomRight]} />
+            {/* Coins */}
+            <View style={[styles.corner, styles.cornerTL]} />
+            <View style={[styles.corner, styles.cornerTR]} />
+            <View style={[styles.corner, styles.cornerBL]} />
+            <View style={[styles.corner, styles.cornerBR]} />
+
+            {/* Ligne ANIMÉE */}
             {!scanned && (
               <Animated.View
                 style={[
@@ -135,60 +145,38 @@ export default function ScannerScreen() {
         <View style={styles.overlayBottom} />
       </View>
 
-      {/* Instructions */}
-      {!scanned && (
-        <View style={styles.instructions}>
-          <BlurView intensity={60} tint="dark" style={styles.instructionsBlur}>
-            <Text style={styles.instructionsText}>
-              Placez le code dans le cadre
-            </Text>
-          </BlurView>
-        </View>
-      )}
-
-      {/* Controls */}
+      {/* CONTRÔLES (TORCHE) */}
       <View style={styles.controls}>
         <TouchableOpacity
-          style={styles.controlButton}
+          style={styles.flashButton}
           onPress={() => setTorch(!torch)}
         >
-          <BlurView intensity={80} tint="dark" style={styles.controlBlur}>
-            {torch ? (
-              <Flashlight size={28} color="#FFF" />
-            ) : (
-              <FlashlightOff size={28} color="#FFF" />
-            )}
-          </BlurView>
+          {torch ? (
+            <Flashlight size={30} color="#fff" />
+          ) : (
+            <FlashlightOff size={30} color="#fff" />
+          )}
         </TouchableOpacity>
       </View>
 
-      {/* Success Overlay */}
+      {/* POPUP RÉSULTAT */}
       {scanned && (
-        <View style={styles.successOverlay}>
-          <BlurView
-            intensity={90}
-            tint="dark"
-            style={StyleSheet.absoluteFillObject}
-          />
-          <View style={styles.successCard}>
-            <View style={styles.successIconContainer}>
-              <CheckCircle2 size={64} color="#10B981" strokeWidth={2} />
+        <View style={styles.resultOverlay}>
+          <View style={styles.resultCard}>
+            <CheckCircle2 size={64} color="#10B981" />
+
+            <Text style={styles.resultTitle}>Code scanné !</Text>
+
+            <View style={styles.resultBox}>
+              <Text style={styles.resultText}>{scannedData}</Text>
             </View>
-            <Text style={styles.successTitle}>Code scanné avec succès!</Text>
-            <View style={styles.dataContainer}>
-              <Text style={styles.dataLabel}>Contenu:</Text>
-              <Text style={styles.dataText} numberOfLines={4}>
-                {scannedData}
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={styles.scanAgainButton}
-              onPress={handleReset}
-            >
-              <Text style={styles.scanAgainText}>Scanner à nouveau</Text>
+
+            <TouchableOpacity style={styles.resetButton} onPress={resetScan}>
+              <Text style={styles.resetText}>Scanner à nouveau</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.closeButton} onPress={handleReset}>
-              <X size={24} color="#9CA3AF" />
+
+            <TouchableOpacity style={styles.closeButton} onPress={resetScan}>
+              <X size={26} color="#bbb" />
             </TouchableOpacity>
           </View>
         </View>
@@ -199,195 +187,143 @@ export default function ScannerScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
+
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 30,
     backgroundColor: '#0F172A',
   },
-  loadingText: { color: '#94A3B8', fontSize: 16 },
-  permissionContainer: {
-    alignItems: 'center',
-    paddingHorizontal: 32,
-    maxWidth: 400,
-  },
+
   permissionTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '700',
-    color: '#F1F5F9',
-    marginTop: 24,
-    marginBottom: 12,
-    textAlign: 'center',
+    color: '#fff',
+    marginTop: 20,
   },
   permissionText: {
-    fontSize: 16,
-    color: '#94A3B8',
+    color: '#aaa',
     textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 32,
+    marginTop: 10,
+    marginBottom: 20,
   },
   permissionButton: {
     backgroundColor: '#3B82F6',
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 30,
+    borderRadius: 10,
     width: '100%',
+    maxWidth: 280,
   },
   permissionButtonText: {
-    color: '#FFF',
+    color: '#fff',
+    textAlign: 'center',
     fontSize: 16,
     fontWeight: '600',
-    textAlign: 'center',
   },
-  header: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 },
-  headerBlur: { paddingVertical: 16, paddingHorizontal: 24 },
+
+  header: { position: 'absolute', top: 0, left: 0, right: 0 },
+  headerBox: {
+    paddingVertical: 14,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
   headerTitle: {
+    color: '#fff',
     fontSize: 20,
     fontWeight: '700',
-    color: '#FFF',
     textAlign: 'center',
   },
+
   overlay: { ...StyleSheet.absoluteFillObject },
-  overlayTop: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)' },
+  overlayTop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' },
   overlayMiddle: { flexDirection: 'row' },
-  overlaySide: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)' },
-  overlayBottom: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)' },
+  overlaySide: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' },
+  overlayBottom: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' },
+
   scanArea: {
     width: SCAN_AREA_SIZE,
     height: SCAN_AREA_SIZE,
     position: 'relative',
   },
+
   corner: {
     position: 'absolute',
-    width: 32,
-    height: 32,
+    width: 28,
+    height: 28,
     borderColor: '#3B82F6',
   },
-  cornerTopLeft: {
-    top: 0,
-    left: 0,
-    borderTopWidth: 4,
-    borderLeftWidth: 4,
-    borderTopLeftRadius: 8,
-  },
-  cornerTopRight: {
-    top: 0,
-    right: 0,
-    borderTopWidth: 4,
-    borderRightWidth: 4,
-    borderTopRightRadius: 8,
-  },
-  cornerBottomLeft: {
-    bottom: 0,
-    left: 0,
-    borderBottomWidth: 4,
-    borderLeftWidth: 4,
-    borderBottomLeftRadius: 8,
-  },
-  cornerBottomRight: {
-    bottom: 0,
-    right: 0,
-    borderBottomWidth: 4,
-    borderRightWidth: 4,
-    borderBottomRightRadius: 8,
-  },
+  cornerTL: { top: 0, left: 0, borderTopWidth: 4, borderLeftWidth: 4 },
+  cornerTR: { top: 0, right: 0, borderTopWidth: 4, borderRightWidth: 4 },
+  cornerBL: { bottom: 0, left: 0, borderBottomWidth: 4, borderLeftWidth: 4 },
+  cornerBR: { bottom: 0, right: 0, borderBottomWidth: 4, borderRightWidth: 4 },
+
   scanLine: {
     position: 'absolute',
     left: 0,
     right: 0,
-    height: 2,
+    height: 3,
     backgroundColor: '#3B82F6',
-    shadowColor: '#3B82F6',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 8,
   },
-  instructions: {
-    position: 'absolute',
-    bottom: 120,
-    left: 32,
-    right: 32,
-    zIndex: 10,
-  },
-  instructionsBlur: {
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  instructionsText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
+
   controls: {
     position: 'absolute',
     bottom: 40,
     left: 0,
     right: 0,
     alignItems: 'center',
-    zIndex: 10,
   },
-  controlButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    overflow: 'hidden',
+
+  flashButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  controlBlur: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  successOverlay: {
+
+  resultOverlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    zIndex: 100,
+    paddingHorizontal: 20,
+    backgroundColor: 'rgba(0,0,0,0.6)',
   },
-  successCard: {
+
+  resultCard: {
     backgroundColor: '#1F2937',
-    borderRadius: 24,
-    padding: 32,
+    borderRadius: 20,
+    padding: 30,
     width: '100%',
-    maxWidth: 400,
+    maxWidth: 380,
     alignItems: 'center',
     position: 'relative',
   },
-  successIconContainer: { marginBottom: 24 },
-  successTitle: {
-    fontSize: 24,
+
+  resultTitle: {
+    color: '#fff',
+    fontSize: 22,
+    marginVertical: 20,
     fontWeight: '700',
-    color: '#F1F5F9',
-    marginBottom: 24,
-    textAlign: 'center',
   },
-  dataContainer: {
+
+  resultBox: {
     width: '100%',
     backgroundColor: '#374151',
-    borderRadius: 12,
     padding: 16,
-    marginBottom: 24,
+    borderRadius: 12,
+    marginBottom: 20,
   },
-  dataLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#9CA3AF',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  dataText: { fontSize: 16, color: '#F1F5F9', lineHeight: 24 },
-  scanAgainButton: {
+  resultText: { color: '#fff', fontSize: 16 },
+
+  resetButton: {
     backgroundColor: '#3B82F6',
-    paddingVertical: 16,
-    paddingHorizontal: 32,
+    paddingVertical: 14,
     borderRadius: 12,
     width: '100%',
   },
-  scanAgainText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  closeButton: { position: 'absolute', top: 16, right: 16, padding: 8 },
+  resetText: { color: '#fff', textAlign: 'center', fontSize: 16 },
+
+  closeButton: { position: 'absolute', top: 18, right: 18 },
 });

@@ -32,13 +32,13 @@ export const loginWithEmailPassword = async (
     await authStorage.saveUserId(userId);
 
     const role = await fetchUserRole(userId);
-    console.log(role, 'role');
     await authStorage.saverole(role);
 
     return {
       success: true,
       token,
       userId,
+      role,
     };
   } catch (error: any) {
     return {

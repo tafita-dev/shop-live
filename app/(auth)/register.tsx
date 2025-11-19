@@ -267,7 +267,7 @@ export default function Register(): JSX.Element {
         email,
         phone,
         password,
-        role: 'vendor',
+        role: 'client',
         authProviders: { emailPassword: true },
       });
       if (response.success) {

@@ -20,8 +20,8 @@ import { loginWithEmailPassword } from '@/utils/authServices';
 import SuccessModal from '@/components/SuccesModal';
 import ErrorModal from '@/components/ErrorModal';
 import { formatFirebaseError } from '@/utils/fromater';
-import FacebookLogin from '@/components/FacebookLogin';
-import GoogleLoginScreen from '@/components/GoogleLogin';
+// import FacebookLogin from '@/components/FacebookLogin';
+// import GoogleLoginScreen from '@/components/GoogleLogin';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
@@ -84,15 +84,17 @@ export default function Login() {
     setLoading(true);
     try {
       const loginResult = await loginWithEmailPassword(email.trim(), password);
-      if (loginResult?.success) {
-        // Redirection en cas de succès
-        router.replace('/(client)');
+      if (loginResult.success) {
+        if (loginResult.role === 'client') {
+          router.replace('/(client)');
+        } else if (loginResult.role === 'livrer') {
+          router.replace('/(livrer)');
+        } else {
+          router.replace('/(vendor)');
+        }
       } else {
         setShowErrorModal(true);
-        const firebaseErrorMsg = formatFirebaseError(loginResult?.error);
-        setErrorMessage(
-          firebaseErrorMsg || 'Une erreur est survenue lors de la connexion.',
-        );
+        setErrorMessage(loginResult.error || 'Erreur de connexion automatique');
       }
     } catch (error) {
       setShowErrorModal(true);
@@ -254,11 +256,11 @@ export default function Login() {
               <View style={styles.separator} />
             </View>
 
-            {/* Boutons sociaux */}
+            {/* Boutons sociaux 
             <View style={styles.socialIconsContainer}>
               <GoogleLoginScreen />
               <FacebookLogin />
-            </View>
+            </View> */}
 
             <TouchableOpacity
               style={styles.mainButton}
