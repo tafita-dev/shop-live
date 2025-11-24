@@ -17,6 +17,7 @@ import {
   Portal,
   Modal,
   TouchableRipple,
+  Appbar,
 } from 'react-native-paper';
 import { Menu, LogOut, X, ArrowLeft } from 'lucide-react-native';
 import ProtectUserRole from '@/components/ProtectUserRole';
@@ -61,22 +62,21 @@ export default function LiveLayout() {
   return (
     <ProtectUserRole role="vendor">
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <SafeAreaView style={{ flex: 1 }}>
-          <LinearGradient colors={['#FFF', '#F9FAFB']} style={styles.container}>
-            {/* Header */}
-            <View style={styles.header}>
-              <TouchableOpacity onPress={() => router.push('/')}>
-                <ArrowLeft size={28} color="#EC4899" />
-              </TouchableOpacity>
-              <Text style={styles.title}>Gestion Livreur</Text>
-            </View>
+        {/* ✅ SafeArea global */}
+        <LinearGradient colors={['#FFF', '#F9FAFB']} style={styles.container}>
+          {/* Header */}
+          <Appbar.Header style={styles.header}>
+            <TouchableOpacity onPress={() => router.push('/')}>
+              <ArrowLeft size={28} color="#EC4899" />
+            </TouchableOpacity>
+            <Text style={styles.title}>Gestion Livreur</Text>
+          </Appbar.Header>
 
-            {/* Contenu principal */}
-            <View style={styles.content}>
-              <Slot />
-            </View>
-          </LinearGradient>
-        </SafeAreaView>
+          {/* Contenu principal */}
+          <View style={styles.content}>
+            <Slot />
+          </View>
+        </LinearGradient>
       </GestureHandlerRootView>
     </ProtectUserRole>
   );

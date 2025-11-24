@@ -12,17 +12,19 @@ import {
 import { db } from '../firebase/config';
 import { User } from '@/types/user';
 import * as Notifications from 'expo-notifications';
-import { getFCMToken } from '@/app/api/Notification';
+import { usePushNotification } from '@/useNotifications';
 
 export class UserClass {
-  static createUser = async (userId: string, userData: User) => {
+  static createUser = async (
+    userId: string,
+    userData: User,
+    expoPushToken?: string,
+  ) => {
     try {
-      const token = await getFCMToken();
-      console.log('Expo Push Token:', token);
-
+      console.log(expoPushToken, 'tafita');
       await setDoc(doc(db, 'users', userId), {
         ...userData,
-        fcmToken: token,
+        fcmToken: expoPushToken,
         createdAt: serverTimestamp(),
       });
 

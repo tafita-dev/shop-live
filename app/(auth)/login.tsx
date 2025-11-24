@@ -5,109 +5,92 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Image,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
   Dimensions,
-  Alert, // Ajout pour les messages d'erreur de validation
+  // 🟢 AJOUT : Importez le composant Image standard de React Native
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { FontAwesome } from '@expo/vector-icons';
+import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import Spinner from 'react-native-loading-spinner-overlay';
 import { loginWithEmailPassword } from '@/utils/authServices';
-import SuccessModal from '@/components/SuccesModal';
 import ErrorModal from '@/components/ErrorModal';
-import { formatFirebaseError } from '@/utils/fromater';
-// import FacebookLogin from '@/components/FacebookLogin';
-// import GoogleLoginScreen from '@/components/GoogleLogin';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
-const { width } = Dimensions.get('window');
+// 🛑 SUPPRESSION : L'importation 'moti' n'est plus nécessaire ici.
+// import { Image } from 'moti';
 
-// --- CONSTANTES DE STYLE AMÉLIORÉES ---
-const PRIMARY_COLOR = '#EC4899'; // Votre rose
-const ACCENT_COLOR = '#f43f5e'; // Un rose plus vif pour l'accentuation du gradient
-const TEXT_COLOR = '#1f2937'; // Couleur du texte principal
-const BACKGROUND_COLOR = '#f3f4f6'; // Fond clair (Gris doux) pour un design moderne
-const CARD_BG = '#fff'; // Couleur de la carte d'authentification
+const { width, height } = Dimensions.get('window');
+
+// 💡 Assurez-vous que ce chemin est CORRECT. Utilisez le chemin de votre icône ou image de logo.
+const LOGO_SOURCE = require('../../assets/images/icon.png');
+
+// ----------------------------------------------------
+// 🎨 COULEURS ET CONSTANTES
+// ----------------------------------------------------
+const PRIMARY_COLOR = '#EC4899'; // Rose principal
+const ACCENT_COLOR = '#f43f5e'; // Rose accentué
+const TEXT_COLOR = '#1f2937'; // Texte sombre
+const WHITE = '#fff';
 
 export default function Login() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // NOUVEAUX ÉTATS POUR LE CONTRÔLE DES CHAMPS (INPUT VALIDATION)
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
 
   const passwordRef = useRef<TextInput>(null);
 
-  // --- NOUVELLE LOGIQUE DE VALIDATION ---
+  // --- Validation des champs
   const validateFields = () => {
     let isValid = true;
     setEmailError('');
     setPasswordError('');
 
     if (!email.trim() || !/^\S+@\S+\.\S+$/.test(email)) {
-      setEmailError('Veuillez entrer une adresse email valide.');
+      setEmailError('Veuillez entrer une adresse e-mail valide.');
       isValid = false;
     }
     if (!password) {
       setPasswordError('Veuillez entrer votre mot de passe.');
       isValid = false;
     }
-    // Vous pouvez ajouter ici d'autres vérifications de mot de passe (taille min, etc.)
 
     return isValid;
   };
 
-  // Logique de connexion (MIS À JOUR)
-  const handleLogin = async () => {
-    // 1. Contrôler les champs avant de procéder
-    if (!validateFields()) {
-      Alert.alert(
-        'Erreur de formulaire',
-        'Veuillez corriger les champs en rouge avant de continuer.',
-      );
-      return;
-    }
+  // --- Gestion de la connexion (Logique conservée)
+  const handleLogin = async (): Promise<void> => {
+    if (!validateFields()) return;
 
-    // 2. Logique de connexion API (inchangée)
-    setShowSuccessModal(false);
     setLoading(true);
     try {
-      const loginResult = await loginWithEmailPassword(email.trim(), password);
-      if (loginResult.success) {
-        if (loginResult.role === 'client') {
-          router.replace('/(client)');
-        } else if (loginResult.role === 'livrer') {
-          router.replace('/(livrer)');
-        } else {
-          router.replace('/(vendor)');
-        }
+      const loginResult = await loginWithEmailPassword(email, password);
+
+      if (loginResult.success && loginResult.role && loginResult.token) {
+        setTimeout(() => router.replace('/(client)'), 100);
       } else {
         setShowErrorModal(true);
-        setErrorMessage(loginResult.error || 'Erreur de connexion automatique');
+        setErrorMessage(loginResult.error || 'Erreur de connexion.');
       }
-    } catch (error) {
+    } catch (error: any) {
+      const message = error?.message || String(error) || 'Erreur inattendue.';
+      setErrorMessage(message);
       setShowErrorModal(true);
-      const generalErrorMsg = formatFirebaseError(error);
-      setErrorMessage(
-        generalErrorMsg || 'Erreur inattendue lors de la connexion.',
-      );
     } finally {
       setLoading(false);
     }
   };
 
-  // Fonction utilitaire pour changer le texte et effacer l'erreur associée
   const handleEmailChange = (text: string) => {
     setEmail(text);
     if (emailError) setEmailError('');
@@ -118,64 +101,66 @@ export default function Login() {
     if (passwordError) setPasswordError('');
   };
 
-  // Style dynamique pour les inputs
   const getInputStyle = (error: string) => ({
-    borderColor: error ? ACCENT_COLOR : '#e2e8f0', // Rose vif si erreur
-    borderWidth: error ? 2 : 1,
-    shadowColor: error ? ACCENT_COLOR : 'transparent',
-    shadowOpacity: error ? 0.3 : 0,
-    shadowRadius: error ? 5 : 0,
-    elevation: error ? 5 : 0,
+    borderWidth: error ? 1 : 0,
+    borderColor: error ? ACCENT_COLOR : 'transparent',
   });
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: CARD_BG }]}>
+    <LinearGradient colors={['#FFF', '#FFF']} style={styles.container}>
+      <Spinner
+        visible={loading}
+        textContent="Connexion..."
+        textStyle={styles.spinnerText}
+        overlayColor="rgba(0,0,0,0.75)"
+      />
+
+      <ErrorModal
+        visible={showErrorModal}
+        title="Erreur !"
+        message={errorMessage}
+        onContinue={() => setShowErrorModal(false)}
+      />
+
+      {/* 1. Zone du Header Rose (Design de l'image) */}
+      <View style={styles.headerBackground}>
+        {/* Cercles de décoration (similaires à l'image) */}
+        <View style={[styles.circle, styles.circleLarge]} />
+        <View style={[styles.circle, styles.circleSmall]} />
+
+        <View style={styles.headerTextContainer}>
+          <Text style={styles.headerTitle}>Bienvenue</Text>
+          <Text style={styles.headerSubtitle}>Content de vous revoir</Text>
+          {/* 🟢 CORRECTION: Utilisation du composant Image standard et de `source={require(...)` */}
+          <Image
+            source={LOGO_SOURCE}
+            style={styles.headerImage} // Appliquer un style si l'image est trop grande/petite
+            resizeMode="contain"
+          />
+        </View>
+      </View>
+
+      {/* 2. Zone de Saisie (White Card) */}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
+        style={styles.keyboardContainer}
       >
-        <Spinner
-          visible={loading}
-          textContent="Connexion..."
-          textStyle={styles.spinnerText}
-          overlayColor="rgba(0,0,0,0.75)"
-        />
-
-        <SuccessModal
-          visible={showSuccessModal}
-          title="Inscription réussie !"
-          message="Votre compte a été créé avec succès. Cliquez sur continuer pour accéder à l'application."
-          onContinue={handleLogin}
-        />
-        <ErrorModal
-          visible={showErrorModal}
-          title="Erreur !"
-          message={errorMessage}
-          onContinue={() => setShowErrorModal(false)}
-        />
-
         <ScrollView
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Logo et Titre - Centré au-dessus de la carte */}
-          <View style={styles.logoContainer}>
-            <Image
-              source={require('../../assets/images/icon.png')} // Assurez-vous que ce chemin est correct
-              style={styles.logo}
-              resizeMode="contain"
-            />
-            <Text style={styles.subtitle}>Connecte-toi pour continuer</Text>
-          </View>
-
-          {/* Carte d'Authentification (Auth Card) */}
-          <View style={styles.authCard}>
-            {/* Formulaire */}
-            <View style={styles.form}>
-              <Text style={styles.label}>Email</Text>
+          {/* Champs E-mail */}
+          <View style={styles.inputGroup}>
+            <View style={[styles.inputContainer, getInputStyle(emailError)]}>
+              <MaterialIcons
+                name="email"
+                size={24}
+                color={PRIMARY_COLOR}
+                style={styles.inputIcon}
+              />
               <TextInput
-                placeholder="nom.utilisateur@email.com"
+                placeholder="E-mail"
                 placeholderTextColor="#94a3b8"
                 value={email}
                 onChangeText={handleEmailChange}
@@ -183,236 +168,270 @@ export default function Login() {
                 autoCapitalize="none"
                 returnKeyType="next"
                 onSubmitEditing={() => passwordRef.current?.focus()}
-                style={[styles.input, getInputStyle(emailError)]}
+                style={styles.input}
               />
-              {emailError ? (
-                <Text style={styles.validationError}>{emailError}</Text>
-              ) : null}
+            </View>
+            {emailError ? (
+              <Text style={styles.validationError}>{emailError}</Text>
+            ) : null}
+          </View>
 
-              <Text style={styles.label}>Mot de passe</Text>
-              <View style={styles.passwordContainer}>
-                <TextInput
-                  ref={passwordRef}
-                  placeholder="********"
-                  placeholderTextColor="#94a3b8"
-                  value={password}
-                  onChangeText={handlePasswordChange}
-                  secureTextEntry={!showPassword}
-                  returnKeyType="done"
-                  onSubmitEditing={handleLogin}
-                  style={[
-                    styles.input,
-                    { flex: 1, marginBottom: 0 },
-                    getInputStyle(passwordError),
-                  ]}
-                />
-                <TouchableOpacity
-                  onPress={() => setShowPassword(!showPassword)}
-                  style={styles.eyeIcon}
-                >
-                  <FontAwesome
-                    name={showPassword ? 'eye' : 'eye-slash'}
-                    size={20}
-                    color={passwordError ? ACCENT_COLOR : '#94a3b8'} // Couleur de l'oeil basée sur l'erreur
-                  />
-                </TouchableOpacity>
-              </View>
-              {passwordError ? (
-                <Text style={styles.validationError}>{passwordError}</Text>
-              ) : null}
-
-              {/* Mot de passe oublié */}
+          {/* Champs Mot de passe */}
+          <View style={styles.inputGroup}>
+            <View style={[styles.inputContainer, getInputStyle(passwordError)]}>
+              <FontAwesome
+                name="lock"
+                size={24}
+                color={PRIMARY_COLOR}
+                style={styles.inputIcon}
+              />
+              <TextInput
+                ref={passwordRef}
+                placeholder="Mot de passe"
+                placeholderTextColor="#94a3b8"
+                value={password}
+                onChangeText={handlePasswordChange}
+                secureTextEntry={!showPassword}
+                returnKeyType="done"
+                onSubmitEditing={handleLogin}
+                style={styles.input}
+              />
               <TouchableOpacity
-                style={styles.forgotPassword}
-                // Chemin corrigé pour être plus logique
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.eyeIcon}
               >
-                <Text style={styles.forgotText}>Mot de passe oublié ?</Text>
+                <FontAwesome
+                  name={showPassword ? 'eye' : 'eye-slash'}
+                  size={20}
+                  color="#94a3b8"
+                />
               </TouchableOpacity>
             </View>
+            {passwordError ? (
+              <Text style={styles.validationError}>{passwordError}</Text>
+            ) : null}
+          </View>
 
-            {/* Bouton principal - Rose Gradient */}
+          {/* Ligne "Se souvenir de moi" et "Mot de passe oublié ?" */}
+          <View style={styles.footerLinks}>
             <TouchableOpacity
-              style={styles.mainButton}
-              onPress={handleLogin}
-              disabled={loading}
+              onPress={() => setRememberMe(!rememberMe)}
+              style={styles.checkboxContainer}
             >
-              <LinearGradient
-                colors={[PRIMARY_COLOR, ACCENT_COLOR]}
-                start={{ x: 0, y: 0.5 }}
-                end={{ x: 1, y: 0.5 }}
-                style={[
-                  styles.mainButtonGradient,
-                  loading && styles.mainButtonDisabled,
-                ]}
-              >
-                <Text style={styles.mainButtonText}>Se connecter</Text>
-              </LinearGradient>
+              <MaterialIcons
+                name={rememberMe ? 'check-box' : 'check-box-outline-blank'}
+                size={22}
+                color={rememberMe ? PRIMARY_COLOR : '#94a3b8'}
+                style={{ marginRight: 5 }}
+              />
+              <Text style={styles.checkboxText}>Se souvenir de moi</Text>
             </TouchableOpacity>
 
-            {/* Séparateur */}
-            <View style={styles.separatorContainer}>
-              <View style={styles.separator} />
-              <Text style={styles.separatorText}>OU</Text>
-              <View style={styles.separator} />
-            </View>
-
-            {/* Boutons sociaux 
-            <View style={styles.socialIconsContainer}>
-              <GoogleLoginScreen />
-              <FacebookLogin />
-            </View> */}
-
-            <TouchableOpacity
-              style={styles.mainButton}
-              onPress={() => router.push('/(auth)/register')}
-              disabled={loading}
-            >
-              <LinearGradient
-                colors={[PRIMARY_COLOR, ACCENT_COLOR]}
-                start={{ x: 0, y: 0.5 }}
-                end={{ x: 1, y: 0.5 }}
-                style={[
-                  styles.mainButtonGradient,
-                  loading && styles.mainButtonDisabled,
-                ]}
-              >
-                <Text style={styles.mainButtonText}>Créé un compte </Text>
-              </LinearGradient>
+            <TouchableOpacity>
+              <Text style={styles.forgotPasswordText}>
+                Mot de passe oublié ?
+              </Text>
             </TouchableOpacity>
           </View>
-          <View style={{ height: 30 }} />
+
+          {/* Bouton CONNEXION */}
+          <TouchableOpacity
+            style={styles.mainButton}
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            <LinearGradient
+              colors={[PRIMARY_COLOR, ACCENT_COLOR]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={[
+                styles.mainButtonGradient,
+                loading && styles.mainButtonDisabled,
+              ]}
+            >
+              <Text style={styles.mainButtonText}>SE CONNECTER</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          {/* Lien "Pas de compte ? S'inscrire" */}
+          <TouchableOpacity
+            style={styles.registerLink}
+            onPress={() => router.push('/(auth)/register')}
+          >
+            <Text style={styles.registerText}>
+              Pas encore de compte ?{' '}
+              <Text style={styles.registerHighlight}>S'inscrire</Text>
+            </Text>
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </LinearGradient>
   );
 }
 
-// --- STYLESHEET AMÉLIORÉ ---
+// ----------------------------------------------------
+// 💅 STYLES
+// ----------------------------------------------------
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  headerBackground: {
+    height: height * 0.45,
+    backgroundColor: PRIMARY_COLOR,
+    borderBottomLeftRadius: 120,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    overflow: 'hidden',
+  },
+  headerTextContainer: {
+    paddingHorizontal: 30,
+    paddingTop: Platform.OS === 'ios' ? 70 : 50,
+  },
+  headerTitle: {
+    fontSize: 38,
+    fontWeight: '800',
+    color: WHITE,
+    marginBottom: 5,
+  },
+  headerSubtitle: {
+    fontSize: 18,
+    fontWeight: '400',
+    color: WHITE,
+  },
+  // 🟢 AJOUT : Style pour l'image dans le header
+  headerImage: {
+    width: 80,
+    height: 80,
+    alignSelf: 'flex-end', // Positionner l'image à droite si nécessaire
+    marginTop: -40, // Remonter l'image un peu
+    backgroundColor: '#FFF',
+  },
+  circle: {
+    position: 'absolute',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 999,
+  },
+  circleLarge: {
+    width: 250,
+    height: 250,
+    top: -50,
+    right: -100,
+  },
+  circleSmall: {
+    width: 150,
+    height: 150,
+    bottom: -80,
+    right: -50,
+    backgroundColor: ACCENT_COLOR,
+  },
+  keyboardContainer: {
+    flex: 1,
+    marginTop: height * 0.35,
+  },
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 20, // Légèrement augmenté
-    paddingVertical: 10,
+    paddingHorizontal: 25,
+    paddingVertical: 20,
+    backgroundColor: WHITE,
   },
-  // --- Entête ---
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 30,
-    marginTop: 20,
+  inputGroup: {
+    marginBottom: 15,
   },
-  logo: { width: 80, height: 80, borderRadius: 15 },
-  title: {
-    color: TEXT_COLOR,
-    fontSize: 28, // Taille légèrement réduite
-    fontWeight: '800',
-    marginTop: 15,
-  },
-  subtitle: {
-    color: PRIMARY_COLOR, // Utilisez le rose principal ici
-    fontSize: 16,
-    fontWeight: '500',
-    marginTop: 5,
-  },
-  // --- Carte d'Authentification (Auth Card) ---
-  authCard: {
-    paddingHorizontal: 20,
-    paddingVertical: 30,
-    shadowColor: TEXT_COLOR,
-  },
-  // --- Formulaire ---
-  form: { marginBottom: 10 },
-  label: {
-    color: TEXT_COLOR,
-    fontSize: 14,
-    marginBottom: 8,
-    marginTop: 15,
-    fontWeight: '600',
-  },
-  input: {
-    backgroundColor: '#f9fafb', // Fond d'input très clair
-    color: TEXT_COLOR,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    marginBottom: 0, // Géré par l'erreur/l'espacement global
-    borderWidth: 1,
-    borderColor: '#e2e8f0', // Bordure gris très clair par défaut
-  },
-  passwordContainer: {
+  inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 5, // Espacement avant l'erreur/le lien oublié
+    backgroundColor: WHITE,
+    borderRadius: 15,
+    paddingHorizontal: 15,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    height: 60,
+  },
+  inputIcon: {
+    marginRight: 10,
+    opacity: 0.6,
+  },
+  input: {
+    flex: 1,
+    color: TEXT_COLOR,
+    fontSize: 16,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
   },
   eyeIcon: {
     position: 'absolute',
     right: 15,
-    top: 0,
-    bottom: 0,
-    justifyContent: 'center',
+    padding: 5,
   },
-  // NOUVEAU STYLE POUR L'ERREUR DE VALIDATION
   validationError: {
     color: ACCENT_COLOR,
     fontSize: 12,
-    marginTop: 4,
-    marginBottom: 8,
+    marginTop: 5,
+    fontWeight: '500',
+    marginLeft: 10,
+  },
+  footerLinks: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 5,
+    marginBottom: 30,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkboxText: {
+    color: TEXT_COLOR,
+    fontSize: 14,
     fontWeight: '500',
   },
-  forgotPassword: { alignItems: 'flex-end', marginBottom: 20 },
-  forgotText: {
-    color: PRIMARY_COLOR,
-    fontWeight: '600',
+  forgotPasswordText: {
+    color: TEXT_COLOR,
     fontSize: 14,
+    fontWeight: '600',
+    opacity: 0.8,
   },
-  // --- Bouton Principal ---
-  mainButton: { borderRadius: 12, overflow: 'hidden' },
+  mainButton: {
+    borderRadius: 15,
+    overflow: 'hidden',
+    marginTop: 10,
+  },
   mainButtonGradient: {
-    paddingVertical: 16,
+    paddingVertical: 18,
     alignItems: 'center',
   },
   mainButtonDisabled: {
-    opacity: 0.7, // Diminuer l'opacité lorsque désactivé
+    opacity: 0.7,
   },
   mainButtonText: {
-    color: 'white',
+    color: WHITE,
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '900',
+    letterSpacing: 1,
   },
-  // --- Séparateur ---
-  separatorContainer: {
-    flexDirection: 'row',
+  registerLink: {
+    marginTop: 25,
     alignItems: 'center',
-    marginVertical: 30,
   },
-  separator: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#e2e8f0',
-  },
-  separatorText: {
-    width: 30,
-    textAlign: 'center',
-    color: '#94a3b8',
+  registerText: {
+    color: TEXT_COLOR,
     fontSize: 14,
-    fontWeight: '500',
+    opacity: 0.7,
   },
-  // --- Connexion Sociale ---
-  socialIconsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between', // Utilisé 'space-between' pour plus de marge si les boutons sont larges
-    marginBottom: 20,
-  },
-  // --- Lien d'Inscription ---
-  registerLink: { marginTop: 15, alignItems: 'center' },
-  registerText: { color: '#a1a1aa', fontSize: 14 },
   registerHighlight: {
     fontWeight: 'bold',
     color: PRIMARY_COLOR,
   },
-  spinnerText: { color: 'white', fontSize: width * 0.04, fontWeight: '600' },
+  spinnerText: {
+    color: WHITE,
+    fontSize: width * 0.04,
+    fontWeight: '600',
+  },
 });

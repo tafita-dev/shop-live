@@ -1,105 +1,441 @@
-shoplive-client/
-│
-├── app/
-│   ├── (auth)/
-│   │   ├── login.tsx
-│   │   └── register.tsx
-│   ├── (live)/
-│   │   ├── index.tsx          → Liste des lives actifs
-│   │   ├── live-details.tsx   → Affiche le live Facebook (WebView)
-│   │   └── products-list.tsx  → Produits du live
-│   ├── (orders)/
-│   │   └── my-orders.tsx
-│   └── profile.tsx
-│
-├── components/
-│   ├── ProductCard.tsx
-│   ├── LiveCard.tsx
-│   └── Button.tsx
-│
-├── firebase/
-│   └── config.ts
-│
-├── utils/
-│   └── helpers.ts
-│
-└── App.tsx
-
-
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Dimensions,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { authStorage } from '@/utils/authStorage';
-import { LogOut } from 'lucide-react-native';
+import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
+import Spinner from 'react-native-loading-spinner-overlay';
+import { loginWithEmailPassword } from '@/utils/authServices';
+import ErrorModal from '@/components/ErrorModal';
+import { Image } from 'moti';
 
-export default function Home() {
+const { width, height } = Dimensions.get('window');
+
+// ----------------------------------------------------
+// 🎨 COULEURS ET CONSTANTES
+// ----------------------------------------------------
+const PRIMARY_COLOR = '#EC4899'; // Rose principal
+const ACCENT_COLOR = '#f43f5e'; // Rose accentué
+const TEXT_COLOR = '#1f2937'; // Texte sombre
+const WHITE = '#fff';
+
+export default function Login() {
   const router = useRouter();
-  const [userId, setUserId] = useState<string | null>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
-  useEffect(() => {
-    loadUserData();
-  }, []);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
-  const loadUserData = async () => {
-    const id = await authStorage.getUserId();
-    setUserId(id);
+  const passwordRef = useRef<TextInput>(null);
+
+  // --- Validation des champs
+  const validateFields = () => {
+    let isValid = true;
+    setEmailError('');
+    setPasswordError('');
+
+    if (!email.trim() || !/^\S+@\S+\.\S+$/.test(email)) {
+      setEmailError('Veuillez entrer une adresse e-mail valide.');
+      isValid = false;
+    }
+    if (!password) {
+      setPasswordError('Veuillez entrer votre mot de passe.');
+      isValid = false;
+    }
+
+    return isValid;
   };
 
-  const handleLogout = async () => {
-    await authStorage.clearAuthData();
-    router.replace('/(auth)/login');
+  // --- Gestion de la connexion (Logique conservée)
+  const handleLogin = async (): Promise<void> => {
+    if (!validateFields()) return;
+
+    setLoading(true);
+    try {
+      const loginResult = await loginWithEmailPassword(email, password);
+
+      if (loginResult.success && loginResult.role && loginResult.token) {
+        // Redirection basée sur le rôle
+        if (loginResult.role === 'vendor') {
+          router.replace('/(vendor)');
+        } else if (loginResult.role === 'client') {
+          router.replace('/(client)');
+        } else if (loginResult.role === 'livrer') {
+          router.replace('/(livrer)');
+        } else {
+          setErrorMessage('Rôle inconnu. Contactez le support.');
+          setShowErrorModal(true);
+        }
+      } else {
+        setErrorMessage(loginResult.error || 'Erreur de connexion.');
+        setShowErrorModal(true);
+      }
+    } catch (error: any) {
+      const message = error?.message || String(error) || 'Erreur inattendue.';
+      setErrorMessage(message);
+      setShowErrorModal(true);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleEmailChange = (text: string) => {
+    setEmail(text);
+    if (emailError) setEmailError('');
+  };
+
+  const handlePasswordChange = (text: string) => {
+    setPassword(text);
+    if (passwordError) setPasswordError('');
+  };
+
+  const getInputStyle = (error: string) => ({
+    borderWidth: error ? 1 : 0,
+    borderColor: error ? ACCENT_COLOR : 'transparent',
+  });
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        <Text>tafita</Text>
+    <LinearGradient colors={['#FFF', '#FFF']} style={styles.container}>
+      <Spinner
+        visible={loading}
+        textContent="Connexion..."
+        textStyle={styles.spinnerText}
+        overlayColor="rgba(0,0,0,0.75)"
+      />
+
+      <ErrorModal
+        visible={showErrorModal}
+        title="Erreur !"
+        message={errorMessage}
+        onContinue={() => setShowErrorModal(false)}
+      />
+
+      {/* 1. Zone du Header Rose (Design de l'image) */}
+      <View style={styles.headerBackground}>
+        {/* Cercles de décoration (similaires à l'image) */}
+        <View style={[styles.circle, styles.circleLarge]} />
+        <View style={[styles.circle, styles.circleSmall]} />
+
+        <View style={styles.headerTextContainer}>
+          <Text style={styles.headerTitle}>Bienvenue</Text>
+          <Text style={styles.headerSubtitle}>Content de vous revoir</Text>
+          <Image src="../../assets/images/Gemini_Generated_Image_7hzjyz7hzjyz7hzj.png" />
+        </View>
       </View>
-    </View>
+
+      {/* 2. Zone de Saisie (White Card) */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardContainer}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Champs E-mail */}
+          <View style={styles.inputGroup}>
+            <View style={[styles.inputContainer, getInputStyle(emailError)]}>
+              <MaterialIcons
+                name="email"
+                size={24}
+                color={PRIMARY_COLOR}
+                style={styles.inputIcon}
+              />
+              <TextInput
+                placeholder="E-mail"
+                placeholderTextColor="#94a3b8"
+                value={email}
+                onChangeText={handleEmailChange}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                returnKeyType="next"
+                onSubmitEditing={() => passwordRef.current?.focus()}
+                style={styles.input}
+              />
+            </View>
+            {emailError ? (
+              <Text style={styles.validationError}>{emailError}</Text>
+            ) : null}
+          </View>
+
+          {/* Champs Mot de passe */}
+          <View style={styles.inputGroup}>
+            <View style={[styles.inputContainer, getInputStyle(passwordError)]}>
+              <FontAwesome
+                name="lock"
+                size={24}
+                color={PRIMARY_COLOR}
+                style={styles.inputIcon}
+              />
+              <TextInput
+                ref={passwordRef}
+                placeholder="Mot de passe"
+                placeholderTextColor="#94a3b8"
+                value={password}
+                onChangeText={handlePasswordChange}
+                secureTextEntry={!showPassword}
+                returnKeyType="done"
+                onSubmitEditing={handleLogin}
+                style={styles.input}
+              />
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.eyeIcon}
+              >
+                <FontAwesome
+                  name={showPassword ? 'eye' : 'eye-slash'}
+                  size={20}
+                  color="#94a3b8"
+                />
+              </TouchableOpacity>
+            </View>
+            {passwordError ? (
+              <Text style={styles.validationError}>{passwordError}</Text>
+            ) : null}
+          </View>
+
+          {/* Ligne "Se souvenir de moi" et "Mot de passe oublié ?" */}
+          <View style={styles.footerLinks}>
+            <TouchableOpacity
+              onPress={() => setRememberMe(!rememberMe)}
+              style={styles.checkboxContainer}
+            >
+              <MaterialIcons
+                name={rememberMe ? 'check-box' : 'check-box-outline-blank'}
+                size={22}
+                color={rememberMe ? PRIMARY_COLOR : '#94a3b8'}
+                style={{ marginRight: 5 }}
+              />
+              <Text style={styles.checkboxText}>Se souvenir de moi</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity>
+              <Text style={styles.forgotPasswordText}>
+                Mot de passe oublié ?
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Bouton CONNEXION */}
+          <TouchableOpacity
+            style={styles.mainButton}
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            <LinearGradient
+              colors={[PRIMARY_COLOR, ACCENT_COLOR]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={[
+                styles.mainButtonGradient,
+                loading && styles.mainButtonDisabled,
+              ]}
+            >
+              <Text style={styles.mainButtonText}>SE CONNECTER</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          {/* Lien "Pas de compte ? S'inscrire" */}
+          <TouchableOpacity
+            style={styles.registerLink}
+            onPress={() => router.push('/(auth)/register')}
+          >
+            <Text style={styles.registerText}>
+              Pas encore de compte ?{' '}
+              <Text style={styles.registerHighlight}>S'inscrire</Text>
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </LinearGradient>
   );
 }
 
+// ----------------------------------------------------
+// 💅 STYLES
+// ----------------------------------------------------
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    flex: 1, // Fond principal de l'application
   },
-  content: {
-    alignItems: 'center',
-    padding: 20,
+
+  // --- Header Rose (Design de l'image)
+  headerBackground: {
+    height: height * 0.45,
+    backgroundColor: PRIMARY_COLOR,
+    borderBottomLeftRadius: 120, // Courbe du bas à gauche
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    overflow: 'hidden',
   },
-  title: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#FFF',
-    marginBottom: 8,
+  headerTextContainer: {
+    paddingHorizontal: 30,
+    paddingTop: Platform.OS === 'ios' ? 70 : 50, // Ajustement de la zone sûre
   },
-  subtitle: {
+  headerTitle: {
+    fontSize: 38,
+    fontWeight: '800',
+    color: WHITE,
+    marginBottom: 5,
+  },
+  headerSubtitle: {
     fontSize: 18,
-    color: '#FFF',
-    marginBottom: 16,
+    fontWeight: '400',
+    color: WHITE,
   },
-  userId: {
-    fontSize: 14,
-    color: '#FFF',
-    opacity: 0.8,
-    marginBottom: 24,
+
+  // Cercles de décoration (Absolute)
+  circle: {
+    position: 'absolute',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 999,
   },
-  logoutButton: {
+  circleLarge: {
+    width: 250,
+    height: 250,
+    top: -50,
+    right: -100,
+  },
+  circleSmall: {
+    width: 150,
+    height: 150,
+    bottom: -80,
+    right: -50,
+    backgroundColor: ACCENT_COLOR,
+  },
+
+  // --- Conteneur de Saisie / ScrollView
+  keyboardContainer: {
+    flex: 1,
+    marginTop: height * 0.35, // Positionne le formulaire sous le texte du header
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    paddingHorizontal: 25,
+    paddingVertical: 20,
+    backgroundColor: WHITE,
+  },
+
+  // --- Formulaire
+  inputGroup: {
+    marginBottom: 15,
+  },
+  inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#FFF',
+    backgroundColor: WHITE,
+    borderRadius: 15,
+    paddingHorizontal: 15,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    height: 60,
   },
-  logoutText: {
-    color: '#FFF',
+  inputIcon: {
+    marginRight: 10,
+    opacity: 0.6,
+  },
+  input: {
+    flex: 1,
+    color: TEXT_COLOR,
     fontSize: 16,
-    fontWeight: '700',
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 15,
+    padding: 5,
+  },
+  validationError: {
+    color: ACCENT_COLOR,
+    fontSize: 12,
+    marginTop: 5,
+    fontWeight: '500',
+    marginLeft: 10,
+  },
+
+  // --- Liens inférieurs
+  footerLinks: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 5,
+    marginBottom: 30,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkboxText: {
+    color: TEXT_COLOR,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  forgotPasswordText: {
+    color: TEXT_COLOR,
+    fontSize: 14,
+    fontWeight: '600',
+    opacity: 0.8,
+  },
+
+  // --- Bouton Principal (Gradient)
+  mainButton: {
+    borderRadius: 15,
+    overflow: 'hidden',
+    marginTop: 10,
+  },
+  mainButtonGradient: {
+    paddingVertical: 18,
+    alignItems: 'center',
+  },
+  mainButtonDisabled: {
+    opacity: 0.7,
+  },
+  mainButtonText: {
+    color: WHITE,
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+
+  // --- Lien d'inscription
+  registerLink: {
+    marginTop: 25,
+    alignItems: 'center',
+  },
+  registerText: {
+    color: TEXT_COLOR,
+    fontSize: 14,
+    opacity: 0.7,
+  },
+  registerHighlight: {
+    fontWeight: 'bold',
+    color: PRIMARY_COLOR,
+  },
+  spinnerText: {
+    color: WHITE,
+    fontSize: width * 0.04,
+    fontWeight: '600',
   },
 });

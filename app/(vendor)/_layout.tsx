@@ -225,150 +225,144 @@ export default function VendorLayout() {
 
   return (
     <ProtectUserRole role="vendor">
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        {renderDrawer()}
+      {renderDrawer()}
 
-        <LinearGradient colors={['#FFF', '#F9FAFB']} style={styles.container}>
-          <Appbar.Header style={styles.header}>
-            <View style={styles.logoContainer}>
-              <Image
-                source={require('../../assets/images/icon.png')}
-                style={styles.logo}
-                resizeMode="contain"
-              />
-            </View>
-
-            <View style={styles.iconsRight}>
-              <TouchableRipple
-                style={styles.iconButton}
-                rippleColor="rgba(0,0,0,0.1)"
-              >
-                <Bell size={28} color="#111827" />
-              </TouchableRipple>
-
-              <TouchableRipple style={styles.iconButton} onPress={openDrawer}>
-                <Menu size={30} color="#111827" />
-              </TouchableRipple>
-            </View>
-          </Appbar.Header>
-
-          <LinearGradient colors={['#FFF', '#F3F4F6']} style={styles.tabBar}>
-            {['home', 'categorie', 'orders', 'profile', 'LivrerManagement'].map(
-              (tab, index) => (
-                <TouchableRipple
-                  key={tab}
-                  style={styles.tabButtonMini}
-                  onPress={() =>
-                    handleTabPress(
-                      tab as
-                        | 'home'
-                        | 'categorie'
-                        | 'orders'
-                        | 'profile'
-                        | 'LivrerManagement',
-                    )
-                  }
-                >
-                  <View style={{ alignItems: 'center' }}>
-                    {tab === 'home' && (
-                      <Home
-                        size={26}
-                        color={activeTab === 'home' ? '#EC4899' : '#8e8e93'}
-                      />
-                    )}
-                    {tab === 'categorie' && (
-                      <ShoppingBag
-                        size={26}
-                        color={
-                          activeTab === 'categorie' ? '#EC4899' : '#8e8e93'
-                        }
-                      />
-                    )}
-                    {tab === 'orders' && (
-                      <Clipboard
-                        size={26}
-                        color={activeTab === 'orders' ? '#EC4899' : '#8e8e93'}
-                      />
-                    )}
-                    {tab === 'profile' && (
-                      <User
-                        size={26}
-                        color={activeTab === 'profile' ? '#EC4899' : '#8e8e93'}
-                      />
-                    )}
-                    {tab === 'LivrerManagement' && (
-                      <Truck
-                        size={26}
-                        color={
-                          activeTab === 'LivrerManagement'
-                            ? '#EC4899'
-                            : '#8e8e93'
-                        }
-                      />
-                    )}
-                  </View>
-                </TouchableRipple>
-              ),
-            )}
-          </LinearGradient>
-
-          <Animated.View
-            style={[
-              styles.activeIndicator,
-              {
-                transform: [
-                  {
-                    translateX: indicatorAnim.interpolate({
-                      inputRange: [0, 1, 2, 3, 4],
-                      outputRange: [
-                        0,
-                        width / 5,
-                        (width / 5) * 2,
-                        (width / 5) * 3,
-                        (width / 5) * 4,
-                      ],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          />
-
-          <View style={styles.content}>
-            <Slot />
+      <LinearGradient colors={['#FFF', '#F9FAFB']} style={styles.container}>
+        <Appbar.Header style={styles.header}>
+          <View style={styles.logoContainer}>
+            <Image
+              source={require('../../assets/images/icon.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
           </View>
+
+          <View style={styles.iconsRight}>
+            <TouchableRipple
+              style={styles.iconButton}
+              rippleColor="rgba(0,0,0,0.1)"
+            >
+              <Bell size={28} color="#111827" />
+            </TouchableRipple>
+
+            <TouchableRipple style={styles.iconButton} onPress={openDrawer}>
+              <Menu size={30} color="#111827" />
+            </TouchableRipple>
+          </View>
+        </Appbar.Header>
+
+        <LinearGradient colors={['#FFF', '#F3F4F6']} style={styles.tabBar}>
+          {['home', 'categorie', 'orders', 'profile', 'LivrerManagement'].map(
+            (tab, index) => (
+              <TouchableRipple
+                key={tab}
+                style={styles.tabButtonMini}
+                onPress={() =>
+                  handleTabPress(
+                    tab as
+                      | 'home'
+                      | 'categorie'
+                      | 'orders'
+                      | 'profile'
+                      | 'LivrerManagement',
+                  )
+                }
+              >
+                <View style={{ alignItems: 'center' }}>
+                  {tab === 'home' && (
+                    <Home
+                      size={26}
+                      color={activeTab === 'home' ? '#EC4899' : '#8e8e93'}
+                    />
+                  )}
+                  {tab === 'categorie' && (
+                    <ShoppingBag
+                      size={26}
+                      color={activeTab === 'categorie' ? '#EC4899' : '#8e8e93'}
+                    />
+                  )}
+                  {tab === 'orders' && (
+                    <Clipboard
+                      size={26}
+                      color={activeTab === 'orders' ? '#EC4899' : '#8e8e93'}
+                    />
+                  )}
+                  {tab === 'profile' && (
+                    <User
+                      size={26}
+                      color={activeTab === 'profile' ? '#EC4899' : '#8e8e93'}
+                    />
+                  )}
+                  {tab === 'LivrerManagement' && (
+                    <Truck
+                      size={26}
+                      color={
+                        activeTab === 'LivrerManagement' ? '#EC4899' : '#8e8e93'
+                      }
+                    />
+                  )}
+                </View>
+              </TouchableRipple>
+            ),
+          )}
         </LinearGradient>
 
-        {showModal && (
-          <Animated.View
-            style={[
-              styles.modalOverlay,
-              { opacity: modalAnim, transform: [{ scale: modalAnim }] },
-            ]}
-          >
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Déconnexion</Text>
-              <Text style={styles.modalMessage}>
-                Voulez-vous vraiment vous déconnecter ?
-              </Text>
-              <View style={styles.modalButtons}>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.cancelButton]}
-                  onPress={closeModal}
-                >
-                  <Text style={styles.buttonText}>Non</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.confirmButton]}
-                  onPress={handleLogout}
-                >
-                  <Text style={styles.buttonText}>Oui</Text>
-                </TouchableOpacity>
-              </View>
+        <Animated.View
+          style={[
+            styles.activeIndicator,
+            {
+              transform: [
+                {
+                  translateX: indicatorAnim.interpolate({
+                    inputRange: [0, 1, 2, 3, 4],
+                    outputRange: [
+                      0,
+                      width / 5,
+                      (width / 5) * 2,
+                      (width / 5) * 3,
+                      (width / 5) * 4,
+                    ],
+                  }),
+                },
+              ],
+            },
+          ]}
+        />
+
+        <View style={styles.content}>
+          <Slot />
+        </View>
+      </LinearGradient>
+
+      {showModal && (
+        <Animated.View
+          style={[
+            styles.modalOverlay,
+            { opacity: modalAnim, transform: [{ scale: modalAnim }] },
+          ]}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Déconnexion</Text>
+            <Text style={styles.modalMessage}>
+              Voulez-vous vraiment vous déconnecter ?
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={closeModal}
+              >
+                <Text style={styles.buttonText}>Non</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.confirmButton]}
+                onPress={handleLogout}
+              >
+                <Text style={styles.buttonText}>Oui</Text>
+              </TouchableOpacity>
             </View>
-          </Animated.View>
-        )}
-      </GestureHandlerRootView>
+          </View>
+        </Animated.View>
+      )}
     </ProtectUserRole>
   );
 }

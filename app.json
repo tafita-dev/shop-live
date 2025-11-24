@@ -23,7 +23,6 @@
 
     "android": {
       "package": "com.tafita.live",
-      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -34,10 +33,13 @@
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
         "INTERNET",
-        "RECEIVE_BOOT_COMPLETED"
+        "RECEIVE_BOOT_COMPLETED",
+        "NOTIFICATIONS",
+        "POST_NOTIFICATIONS"
       ],
       "softwareKeyboardLayoutMode": "resize",
-      "jsEngine": "hermes"
+      "jsEngine": "hermes",
+      "googleServicesFile": "./google-services.json"
     },
 
     "web": {

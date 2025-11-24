@@ -125,7 +125,7 @@ export default function VendorProducts() {
   };
 
   return (
-    <Provider>
+    <>
       <Spinner
         visible={loading}
         textContent="Chargement des produits..."
@@ -198,7 +198,7 @@ export default function VendorProducts() {
           <CreateProduct handleModalClose={handleCreateSuccess} />
         </Modal>
       </Portal>
-    </Provider>
+    </>
   );
 }
 

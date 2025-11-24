@@ -26,7 +26,6 @@ import {
   LogOut,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { authStorage, fetchFirebaseUserInfo } from '@/utils/authStorage';
 import { User as UserTypes } from '@/types/user';
 import ProtectUserRole from '@/components/ProtectUserRole';

@@ -13,17 +13,20 @@ export default function Index() {
       try {
         const token = await authStorage.getAuthToken();
         const role = await authStorage.getuserRole();
-        console.log('Role:', role);
+        console.log('Roles:', role);
 
         if (!isMounted) return;
+        console.log(token, role);
 
-        if (token && role) {
+        if (token) {
           if (role === 'vendor') {
-            console.log('➡️ Redirection vers Vendor');
+            console.log('➡️ Redirection vers Vendor', role);
             router.replace('/(vendor)');
           } else if (role === 'livrer') {
+            console.log('➡️ Redirection vers livrer', role);
             router.replace('/(livrer)');
           } else {
+            console.log('➡️ Redirection vers Client', role);
             console.log('➡️ Redirection vers Client');
             router.replace('/(client)');
           }

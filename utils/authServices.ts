@@ -1,38 +1,46 @@
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth, db } from '@/firebase/config';
+import { signInWithEmailAndPassword, getAuth } from 'firebase/auth';
+import { db } from '@/firebase/config';
 import { authStorage } from './authStorage';
-
-import { getAuth } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 
+/** Récupère le rôle de l'utilisateur depuis Firestore */
 export const fetchUserRole = async (userId: string) => {
-  const userDoc = await getDoc(doc(db, 'users', userId));
-  if (userDoc.exists()) {
-    const data = userDoc.data();
-    return data.role; // 'client' ou 'vendor'
+  try {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (userDoc.exists()) {
+      const data = userDoc.data();
+      return data.role; // 'client' ou 'vendor'
+    }
+    return null;
+  } catch (err) {
+    console.error('Erreur fetchUserRole:', err);
+    return null;
   }
-  return null;
 };
 
+/** Connexion avec email et mot de passe */
 export const loginWithEmailPassword = async (
   email: string,
   password: string,
 ) => {
   try {
+    const auth = getAuth();
     const userCredential = await signInWithEmailAndPassword(
       auth,
       email,
       password,
     );
 
-    const token = await userCredential.user.getIdToken();
-    const userId = userCredential.user.uid;
-    console.log(userCredential);
+    const user = userCredential.user;
+    const token = await user.getIdToken();
+    const userId = user.uid;
+    const role = await fetchUserRole(userId);
+
+    await authStorage.saverole(role);
     await authStorage.saveAuthToken(token);
     await authStorage.saveUserId(userId);
 
-    const role = await fetchUserRole(userId);
-    await authStorage.saverole(role);
+    console.log('Connexion réussie:', { userId, role });
 
     return {
       success: true,
@@ -40,10 +48,14 @@ export const loginWithEmailPassword = async (
       userId,
       role,
     };
-  } catch (error: any) {
+  } catch (err: any) {
+    // Toujours récupérer un message clair
+    const message = err?.message || String(err) || 'Erreur de connexion';
+    console.error('Erreur loginWithEmailPassword:', message);
+
     return {
       success: false,
-      error: error || 'Erreur de connexion',
+      error: message,
     };
   }
 };
